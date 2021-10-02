@@ -5,7 +5,7 @@ sg.theme("DarkAmber")
 # Elements inside the window
 layout = [
     [sg.Button("Show text below")],
-    [sg.InputText("Hello World", key="user_input")]
+    [sg.InputText("Hello World", key="userInput")]
 ]
 
 # Create the window
@@ -15,7 +15,7 @@ window = sg.Window("GUI application", layout, size=(200, 100), element_justifica
 while True:
     event, values = window.read();
     if event == "Show text below":
-        sg.popup(values["user_input"], no_titlebar=True, auto_close_duration=1, auto_close=True, background_color="black")
+        sg.popup(values["userInput"], no_titlebar=True, auto_close_duration=1, auto_close=True, background_color="black")
     if event == sg.WIN_CLOSED:
         break
 
