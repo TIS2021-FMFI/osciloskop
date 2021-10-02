@@ -1,3 +1,3 @@
 # osciloskop
 
-`pip install PySimpleGUI` to install the PySimpleGUI module
+run `pip install -r src/requirements.txt` to install all modules
