@@ -1,3 +1,5 @@
 # Ignore all dirs that start with dot
 .*/
-__*
+
+# Ignore all dirs that start with underscore
+_*/
