@@ -1,5 +1,6 @@
 import PySimpleGUI as sg
-from functions import *
+import os, sys; sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from backend import functions as f
 
 sg.theme("DarkAmber")
 
@@ -15,14 +16,15 @@ layout = [
 # Create the window
 window = sg.Window("GUI application", layout, size=(500, 400), element_justification="center")
 
-# Event loop
-while True:
-    event, values = window.read()
-    if event == "Connect":
-        connect()
-    if event == "Disconnect":
-        disconnect()
-    if event == sg.WIN_CLOSED:
-        break
+def run():
+    # Event loop
+    while True:
+        event, values = window.read()
+        if event == "Connect":
+            f.connect()
+        if event == "Disconnect":
+            f.disconnect()
+        if event == sg.WIN_CLOSED:
+            break
 
-window.close()
+    window.close()
