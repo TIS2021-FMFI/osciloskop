@@ -3,13 +3,30 @@ from backend import functions as f
 
 sg.theme("DarkAmber")
 
+button_size = (10, 1)
 # Elements inside the window
+win_1 = [
+    [sg.InputText("Address No.", key="terminal", size=(12, 1)), sg.Button("Connect", size=button_size)],
+    [sg.Button("Terminal", size=button_size), sg.Button("Disconnect", size=button_size)]
+]
+win_2 = [
+    [sg.InputText("Average No.", size=(15, 1), key="average")],
+    [sg.InputText("Points 16-4096", size=(15, 1), key="points")],
+    [sg.Button("RESET", size=(12, 1))]
+]
+win_3 = [
+    [sg.Checkbox("Channel 1"), sg.Checkbox("Channel 2")],
+    [sg.Checkbox("Channel 3"), sg.Checkbox("Channel 4")],
+    [sg.Combo(values=["RAW", "average", "histogram H/V", "versus"], default_value="RAW")],
+    [sg.InputText("FILE_NAME", size=(25, 1)), sg.SaveAs("PATH/")],
+    [sg.Button("SAVE", size=button_size), sg.Checkbox("AutoSave")],
+    [sg.Button("SINGLE", size=button_size), sg.Button("STOP", size=button_size), sg.Button("SINGLE", size=button_size)]
+]
+
 layout = [
-    [sg.Button("Connect"), sg.Button("Disconnect")],
-    [sg.InputText("", key="terminal")],
-    [sg.Radio("Channel 1", 1, default=True), sg.Radio("Channel 2", 1), sg.Radio("Channel 3", 1), sg.Radio("Channel 4", 1)],
-    [sg.Input(), sg.SaveAs()],
-    [sg.Listbox(values=["RAW", "average", "histogram H/V", "versus"], size=(15, 4))]
+    [sg.Frame(layout=win_1, title='', element_justification="c")],
+    [sg.Frame(layout=win_2, title='', element_justification="c")],
+    [sg.Frame(layout=win_3, title='', element_justification="c")]
 ]
 
 # Create the window
