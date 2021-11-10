@@ -3,3 +3,6 @@
 
 # Ignore all dirs that start with underscore
 _*/
+
+# Ignore log from fake hpctrl
+tools/fake_hpctrl/log
