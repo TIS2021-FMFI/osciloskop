@@ -15,16 +15,15 @@ class Adapter:
     out_thread: threading.Thread
     out_thread_killed: bool = False
     testing: bool = False
-    hpctrl_executable: str = "tools/hpctrl/hpctrl.exe"
+    hpctrl_executable: str = "tools/hpctrl/hpctrl"
 
     def __init__(self, testing: bool):
         self.testing = testing
+        if platform.system() == "Windows":
+            self.hpctrl_executable += ".exe"
 
         if self.testing:
-            if platform.system() != "Windows":
-                self.hpctrl_executable = "tools/fake_hpctrl/hpctrl"
-            else:
-                self.hpctrl_executable = "tools/fake_hpctrl/hpctrl.exe"
+            self.hpctrl_executable = self.hpctrl_executable.replace("hpctrl", "fake_hpctrl", 1)
 
     def enqueue_output(self):
         out = self.process.stdout
@@ -38,7 +37,7 @@ class Adapter:
                 time.sleep(0.001)
             # nekonecny cyklus, thread vzdy cita z pipe a hadze do out_queue po riadkoch
 
-    def get_output(self, timeout, lines=None):
+    def get_output(self, timeout: float, lines: int=None):
         out_str = ""
         get_started = time.time()
         line_counter = 0
@@ -70,7 +69,7 @@ class Adapter:
                 universal_newlines=True,
             )
         except FileNotFoundError:
-            # TODO: vypis chybovu hlasu v gui, ze nenaslo hpctrl
+            # TODO: vypis chybovu hlasku v gui, ze nenaslo hpctrl
             quit()
 
         self.out_queue = queue.Queue()
@@ -87,7 +86,7 @@ class Adapter:
             self.out_thread_killed = True
             self.out_thread.join()
             self.out_thread = None
-        if self.process is not None:
+        if self.process is not None:    # TODO: ma zmysel ze horna a dolna podmienka je rovnaka?
             self.process.terminate()
             self.process.kill()
             self.process = None
@@ -112,8 +111,8 @@ class Adapter:
         # self.restart_hpctrl()
         # return False
 
-    def send(self, messages):
-        _messages = list(map(lambda x: x.strip().lower() + "\n", list(filter(lambda x: len(x) > 0, messages.split("\n")))))
+    def send(self, messages: str):
+        _messages = [mssg.strip().lower()+"\n" for mssg in messages.split("\n") if mssg]
         for message in _messages:
             try:
                 print(message, file=self.process.stdin)
@@ -121,20 +120,19 @@ class Adapter:
                 # TODO toto bolo pri hpctrl zmenene tak otestovat ci funguje bez sleep
                 time.sleep(0.1)  # aby HPCTRL stihol spracovat prikaz, inak vypisuje !not ready, try again later (ping)
             except OSError:
-                if message != "exit":
+                if message != "exit\n":
                     self.restart_hpctrl()
                 return False
         return True
 
     # TODO: toto bude mozno inak (treba tu cmd mode?)
-    def connect(self, address):
-        if self.send("LOGON\nOSCI\n" + f"CONNECT {address}"):
-            if self.hpctrl_is_responsive():
-                # if self.send("CMD"):
-                self.address = address
-                self.connected = True
-                return True
-        return False
+    def connect(self, address: int):
+        if not self.hpctrl_is_responsive or not self.send(f"LOGON\nOSCI\nCONNECT {address}"):
+            return False
+        # if self.send("CMD"):
+        self.address = address
+        self.connected = True
+        return True
 
     def disconnect(self):
         self.send("DISCONNECT")
@@ -142,51 +140,45 @@ class Adapter:
         self.connected = False
 
     def enter_cmd_mode(self):
-        if self.connected:
-            if not self.in_cmd_mode:
-                if self.send("CMD"):
-                    self.in_cmd_mode = True
-                    return True
-                return None
+        if not self.connected:
+            return False
+        if self.in_cmd_mode:
             return True
-        return False
+        if self.send("CMD"):
+            self.in_cmd_mode = True
+            return True
+        return None
+
 
     def exit_cmd_mode(self):
-        if self.connected:
-            if self.in_cmd_mode:
-                if self.send("."):
-                    self.in_cmd_mode = False
-                    return True
-                return None
+        if not self.connected:
+            return False
+        if not self.in_cmd_mode:
             return True
-        return False
+        if self.send("."):
+            self.in_cmd_mode = False
+            return True
+        return None
 
-    # def cmd_send(self, message):
-    #     if self.connected:
-    #         if self.in_cmd_mode:
-    #             message = message.strip()
-    #             message = message.lower()
-    #             if message in (".", "cmd", "exit"):
-    #                 return True
-    #             index = message.find(" ")
-    #             if index > 0:
-    #                 prve_slovo = message[:message.find(" ")]
-    #             else:
-    #                 prve_slovo = message
-    #             if self.send(f"{message}\n"):
-    #                 self.in_cmd_mode = True
-    #                 prve_slovo = prve_slovo.strip()
-    #                 if prve_slovo in ("q", "a", "c", "d", "b", "?", "help"):
-    #                     output = self.get_output(10, 1)
-    #                     if output is None:
-    #                         return None
-    #                     while not self.out_queue.empty():
-    #                         riadky = self.get_output(0.2)
-    #                         if riadky is not None:
-    #                             output += "\n" + riadky
-    #                     return output
-    #                 return True
-    #             else:
-    #                 return None
+    # def cmd_send(self, message: str):
+    #     if not self.connected or not self.in_cmd_mode:
     #         return False
-    #     return False
+    #     message = message.strip().lower()
+    #     if message in (".", "cmd", "exit"):
+    #         return True
+    #     index = message.find(" ")
+    #     prve_slovo = message[:index] if index > 0 else message
+    #     if not self.send(f"{message}\n"):
+    #         return None
+
+    #     self.in_cmd_mode = True
+    #     if prve_slovo in ("q", "a", "c", "d", "b", "?", "help"):
+    #         output = self.get_output(10, 1)
+    #         if output is None:
+    #             return None
+    #         while not self.out_queue.empty():
+    #             riadky = self.get_output(0.2)
+    #             if riadky is not None:
+    #                 output += "\n" + riadky
+    #         return output
+    #     return True
