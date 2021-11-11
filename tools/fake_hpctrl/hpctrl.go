@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 )
 
 const (
-	exitCmd  = "exit"
 	logPath  = "tools/fake_hpctrl/log"
 	filePerm = 0644
 )
@@ -28,34 +26,26 @@ func main() {
 	ExitIfErr(err)
 	defer f.Close()
 
-	writeToFile(f, fmt.Sprintf("started at %v\n", time.Now()))
+	writeToFile(f, []byte(fmt.Sprintf("started at %v\n", time.Now())))
 
-	for true {
-		reader := bufio.NewReader(os.Stdin)
-		var text []byte
+	reader := bufio.NewReader(os.Stdin)
+	var text []byte
 
-		for {
-			b, err := reader.ReadByte()
-			if err != nil {
-				break
-			}
-			text = append(text, b)
+	for {
+		b, err := reader.ReadByte()
+		if err != nil {
+			break
 		}
-
-		textTrimmed := strings.Join(strings.Fields(string(text)), " ") + "\n"
-
-		writeToFile(f, textTrimmed+"\n")
-
-		fmt.Println(textTrimmed)
-
-		if textTrimmed == exitCmd {
-			return
-		}
+		text = append(text, b)
 	}
+
+	text = append(text, '\n')
+
+	writeToFile(f, text)
 }
 
-func writeToFile(f *os.File, msg string) {
-	_, err := f.WriteString(msg)
+func writeToFile(f *os.File, msg []byte) {
+	_, err := f.Write(msg)
 	ExitIfErr(err)
 	f.Sync()
 }
