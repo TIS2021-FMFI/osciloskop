@@ -81,7 +81,7 @@ class Adapter:
 
     def kill_hpctrl(self):
         if self.process is not None:
-            self.send("exit")
+            self.send(["exit"])
         if self.out_thread is not None:
             self.out_thread_killed = True
             self.out_thread.join()
@@ -100,7 +100,7 @@ class Adapter:
     def hpctrl_is_responsive(self):
         return True
         # self.clear_input_queue()
-        # if not self.send("ping"):
+        # if not self.send(["ping"]):
         #     return False
         # out = self.get_output(4, 1)
         # if out is None:
@@ -111,23 +111,22 @@ class Adapter:
         # self.restart_hpctrl()
         # return False
 
-    def send(self, messages: str):
-        _messages = [mssg.strip().lower()+"\n" for mssg in messages.split("\n") if mssg]
-        for message in _messages:
-            try:
-                print(message, file=self.process.stdin)
-                self.process.stdin.flush()
-                # TODO toto bolo pri hpctrl zmenene tak otestovat ci funguje bez sleep
-                time.sleep(0.1)  # aby HPCTRL stihol spracovat prikaz, inak vypisuje !not ready, try again later (ping)
-            except OSError:
-                if message != "exit\n":
-                    self.restart_hpctrl()
-                return False
+    def send(self, messages: list[str]):
+        message_string = "\n".join(messages)
+        try:
+            print(message_string, file=self.process.stdin)
+            self.process.stdin.flush()
+            # TODO toto bolo pri hpctrl zmenene tak otestovat ci funguje bez sleep
+            time.sleep(0.1)  # aby HPCTRL stihol spracovat prikaz, inak vypisuje !not ready, try again later (ping)
+        except OSError:
+            if message_string != "exit":
+                self.restart_hpctrl()
+            return False
         return True
 
     # TODO: toto bude mozno inak (treba tu cmd mode?)
     def connect(self, address: int):
-        if not self.hpctrl_is_responsive or not self.send(f"LOGON\nOSCI\nCONNECT {address}"):
+        if not self.hpctrl_is_responsive or not self.send(["LOGON", "OSCI", f"CONNECT {address}"]):
             return False
         # if self.send("CMD"):
         self.address = address
@@ -135,7 +134,7 @@ class Adapter:
         return True
 
     def disconnect(self):
-        self.send("DISCONNECT")
+        self.send(["DISCONNECT"])
         self.address = None
         self.connected = False
 
@@ -144,7 +143,7 @@ class Adapter:
             return False
         if self.in_cmd_mode:
             return True
-        if self.send("CMD"):
+        if self.send(["CMD"]):
             self.in_cmd_mode = True
             return True
         return None
@@ -155,7 +154,7 @@ class Adapter:
             return False
         if not self.in_cmd_mode:
             return True
-        if self.send("."):
+        if self.send(["."]):
             self.in_cmd_mode = False
             return True
         return None
@@ -168,7 +167,7 @@ class Adapter:
     #         return True
     #     index = message.find(" ")
     #     prve_slovo = message[:index] if index > 0 else message
-    #     if not self.send(f"{message}\n"):
+    #     if not self.send([f"{message}"]):
     #         return None
 
     #     self.in_cmd_mode = True
