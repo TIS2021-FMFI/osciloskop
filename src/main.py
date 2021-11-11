@@ -7,7 +7,7 @@ if __name__ == "__main__":
     a.start_hpctrl()
     a.connect(7)
     a.enter_cmd_mode()
-    a.send("q aaaaa")
+    a.send(["q", "aaaaa"])
     a.exit_cmd_mode()
     a.disconnect()
 

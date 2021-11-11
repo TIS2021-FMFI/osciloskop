@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -27,13 +28,21 @@ func main() {
 	ExitIfErr(err)
 	defer f.Close()
 
-	writeToFile(f, "\n")
+	writeToFile(f, fmt.Sprintf("started at %v\n", time.Now()))
 
 	for true {
 		reader := bufio.NewReader(os.Stdin)
-		text, err := reader.ReadString('\n')
-		ExitIfErr(err)
-		textTrimmed := strings.Join(strings.Fields(text), " ")
+		var text []byte
+
+		for {
+			b, err := reader.ReadByte()
+			if err != nil {
+				break
+			}
+			text = append(text, b)
+		}
+
+		textTrimmed := strings.Join(strings.Fields(string(text)), " ") + "\n"
 
 		writeToFile(f, textTrimmed+"\n")
 
