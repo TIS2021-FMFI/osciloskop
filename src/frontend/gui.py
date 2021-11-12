@@ -1,5 +1,6 @@
 import PySimpleGUI as sg
 import backend.functions as f
+import threading, time
 
 class GUI:
 
@@ -42,13 +43,14 @@ class GUI:
     def run(self):
         # Event loop
         while True:
+            print("Number of threads:", threading.active_count())
             event, values = self.window.read()
             if event == "Connect":
-                self.func.connect()
+                threading.Thread(target=self.func.connect).start()
             if event == "Disconnect":
-                self.func.disconnect()
+                threading.Thread(target=self.func.disconnect).start()
             if event == "Send custom":
-                self.func.send_custom(values["custom"])
+                threading.Thread(target=self.func.send_custom, args=(values["custom"],)).start()
             if event in (sg.WIN_CLOSED, "Quit GUI"):
                 break
 
