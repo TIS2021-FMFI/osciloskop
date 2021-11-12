@@ -15,6 +15,9 @@ const (
 	filePerm      = 0644
 	endOfLineChar = 10
 	newLineChar   = '\n'
+	cmdExit       = "exit"
+	cmdIdn        = "q *IDN?"
+	responseIdn   = "HEWLETT-PACKARD,83480A,US35240110,07.12"
 )
 
 func main() {
@@ -42,10 +45,10 @@ loop:
 		textString := strings.TrimSpace(string(text))
 
 		switch textString {
-		case "exit":
+		case cmdExit:
 			break loop
-		case "q *IDN?":
-			fmt.Print("HEWLETT-PACKARD,83480A,US35240110,07.12")
+		case cmdIdn:
+			fmt.Print(responseIdn)
 		}
 	}
 
