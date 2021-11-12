@@ -1,10 +1,17 @@
 import backend.adapter as ada
 
-class Functions:
 
-    def __init__(self):
-        self.adapter = ada.Adapter(testing=True)
-        self.adapter.start_hpctrl()
+class Functions:
+    _instance = None
+
+    def __new__(self):
+        if self._instance is None:
+            self._instance = super(Functions, self).__new__(self)
+
+            self.adapter = ada.Adapter(testing=True)
+            self.adapter.start_hpctrl()
+
+        return self._instance
 
     def connect(self, address: int = 7):
         self.adapter.connect(address)
