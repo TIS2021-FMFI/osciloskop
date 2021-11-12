@@ -133,7 +133,6 @@ class Adapter:
     def send(self, messages: list[str]) -> bool:
         """
         prints messages into self.process.stdin. Returns True if it was successful.
-        If it fails it also restarts hpctrl
         """
         message_string = "\n".join(messages)
         try:
@@ -143,7 +142,6 @@ class Adapter:
             time.sleep(0.1)  # aby HPCTRL stihol spracovat prikaz, inak vypisuje !not ready, try again later (ping)
         except OSError:
             if message_string != "exit":
-                self.restart_hpctrl()
                 return False
         return True
 
