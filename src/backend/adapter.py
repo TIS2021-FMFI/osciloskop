@@ -3,7 +3,6 @@ import subprocess
 import threading
 import queue
 import platform
-from typing import Any
 
 
 class Adapter:
@@ -39,26 +38,26 @@ class Adapter:
             else:
                 time.sleep(0.001)
 
-    def get_output(self, timeout: float, lines: int = None) -> Any:
+    def get_output(self, timeout: float, lines: int) -> str:
         """
-        returns output from hpctrl as str. Returns None if there was no output
+        returns output from hpctrl as str. Returns empty string if there was no output.
+        Timeout arg is in seconds and lines arg is number of lines to be returned
         """
         out_str = ""
         get_started = time.time()
         line_counter = 0
-        while time.time() < get_started + timeout:
-            if lines is not None and line_counter >= lines:
-                return out_str.strip()
+
+        while (time.time() < get_started + timeout) and line_counter < lines:
             if self.out_queue.empty():
                 time.sleep(0.001)
             else:
                 out_str += self.out_queue.get_nowait()
                 line_counter += 1
 
+        self.clear_input_queue()
+
         out_str = out_str.strip()
-        if out_str:
-            return out_str
-        return None
+        return out_str
 
     def clear_input_queue(self) -> None:
         """
