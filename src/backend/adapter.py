@@ -79,7 +79,7 @@ class Adapter:
     def start_hpctrl(self) -> bool:
         """
         starts hpctrl and returns True if it was successful.
-        Return False is file was not found
+        Return False if file was not found
         """
         try:
             self.process = subprocess.Popen(
@@ -128,7 +128,7 @@ class Adapter:
 
     def hpctrl_is_responsive(self) -> bool:
         """
-        returns True if hpctrl respones "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
+        returns True if hpctrl responds "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
         """
         return self.send_and_get_output([self.cmd_idn], 0.1, 1) == self.cmd_idn_response
 
