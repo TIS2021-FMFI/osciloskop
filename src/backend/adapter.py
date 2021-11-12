@@ -3,7 +3,7 @@ import subprocess
 import threading
 import queue
 import platform
-from typing import Sequence
+from typing import Any
 
 
 class Adapter:
@@ -17,7 +17,7 @@ class Adapter:
     testing: bool = False
     hpctrl_executable: str = "tools/hpctrl/hpctrl"
 
-    def __init__(self, testing: bool):
+    def __init__(self, testing: bool) -> None:
         self.testing = testing
         if platform.system() == "Windows":
             self.hpctrl_executable += ".exe"
@@ -25,7 +25,10 @@ class Adapter:
         if self.testing:
             self.hpctrl_executable = self.hpctrl_executable.replace("hpctrl", "fake_hpctrl", 1)
 
-    def enqueue_output(self):
+    def enqueue_output(self) -> None:
+        """
+        reads what hpctrl is saying on stdout into self.out_queue line by line
+        """
         out = self.process.stdout
         for line in iter(out.readline, b""):
             if self.out_thread_killed:
@@ -35,9 +38,11 @@ class Adapter:
                 self.out_queue.put(line)
             else:
                 time.sleep(0.001)
-            # nekonecny cyklus, thread vzdy cita z pipe a hadze do out_queue po riadkoch
 
-    def get_output(self, timeout: float, lines: int=None):
+    def get_output(self, timeout: float, lines: int = None) -> Any:
+        """
+        returns output from hpctrl as str. Returns None if there was no output
+        """
         out_str = ""
         get_started = time.time()
         line_counter = 0
@@ -55,11 +60,17 @@ class Adapter:
             return out_str
         return None
 
-    def clear_input_queue(self):
+    def clear_input_queue(self) -> None:
+        """
+        clears self.out_queue
+        """
         while not self.out_queue.empty():
             self.out_queue.get_nowait()
 
-    def start_hpctrl(self):
+    def start_hpctrl(self) -> bool:
+        """
+        starts hpctrl and returns true if it was successful
+        """
         try:
             self.process = subprocess.Popen(
                 [self.hpctrl_executable, "-i"],
@@ -69,8 +80,8 @@ class Adapter:
                 universal_newlines=True,
             )
         except FileNotFoundError:
-            # TODO: vypis chybovu hlasku v gui, ze nenaslo hpctrl
-            quit()
+            return False
+            # maybe we'll have to quit() here
 
         self.out_queue = queue.Queue()
 
@@ -79,21 +90,30 @@ class Adapter:
         self.out_thread.start()
         self.out_thread_killed = False
 
-    def kill_hpctrl(self):
+        return True
+
+    def kill_hpctrl(self) -> None:
+        """
+        kills running hpctrl
+        """
         if self.process is not None:
             self.send(["exit"])
         if self.out_thread is not None:
             self.out_thread_killed = True
             self.out_thread.join()
             self.out_thread = None
-        if self.process is not None:    # TODO: ma zmysel ze horna a dolna podmienka je rovnaka?
+        # TODO: ma zmysel ze horna a dolna podmienka je rovnaka?
+        if self.process is not None:
             self.process.terminate()
             self.process.kill()
             self.process = None
         self.out_queue = None
 
-    def restart_hpctrl(self):
-        self.kill_hpctrl()  # moze zase zavolat restart
+    def restart_hpctrl(self) -> None:
+        """
+        calls self.kill_hpctrl() and then self.start_hpctrl()
+        """
+        self.kill_hpctrl()
         self.start_hpctrl()
 
     # TODO: toto bude zrejme inak
@@ -111,7 +131,10 @@ class Adapter:
         # self.restart_hpctrl()
         # return False
 
-    def send(self, messages: list[str]):
+    def send(self, messages: list[str]) -> bool:
+        """
+        prints messages into self.process.stdin. Returns True if it was successful
+        """
         message_string = "\n".join(messages)
         try:
             print(message_string, file=self.process.stdin)
@@ -124,21 +147,32 @@ class Adapter:
             return False
         return True
 
-    # TODO: toto bude mozno inak (treba tu cmd mode?)
-    def connect(self, address: int):
+    def connect(self, address: int) -> bool:
+        """
+        connets with LOGON, OSCI, CONNECT {address} commands. Returns True if successful
+        """
         if not self.hpctrl_is_responsive or not self.send(["LOGON", "OSCI", f"CONNECT {address}"]):
             return False
-        # if self.send("CMD"):
         self.address = address
         self.connected = True
         return True
 
-    def disconnect(self):
-        self.send(["DISCONNECT"])
-        self.address = None
-        self.connected = False
+    def disconnect(self) -> bool:
+        """
+        disconnets with DISCONNECT command if possible. Returns True if successful
+        """
+        if not self.connect:
+            return True
+        if self.send(["DISCONNECT"]):
+            self.address = None
+            self.connected = False
+            return True
+        return False
 
-    def enter_cmd_mode(self):
+    def enter_cmd_mode(self) -> bool:
+        """
+        enters cmd mode with CMD command if possible. Returns True if successful
+        """
         if not self.connected:
             return False
         if self.in_cmd_mode:
@@ -146,10 +180,12 @@ class Adapter:
         if self.send(["CMD"]):
             self.in_cmd_mode = True
             return True
-        return None
+        return False
 
-
-    def exit_cmd_mode(self):
+    def exit_cmd_mode(self) -> bool:
+        """
+        exits cmd mode with . command if possible. Returns True if successful
+        """
         if not self.connected:
             return False
         if not self.in_cmd_mode:
@@ -157,7 +193,7 @@ class Adapter:
         if self.send(["."]):
             self.in_cmd_mode = False
             return True
-        return None
+        return False
 
     # def cmd_send(self, message: str):
     #     if not self.connected or not self.in_cmd_mode:
