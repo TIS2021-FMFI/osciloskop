@@ -132,7 +132,8 @@ class Adapter:
 
     def send(self, messages: list[str]) -> bool:
         """
-        prints messages into self.process.stdin. Returns True if it was successful
+        prints messages into self.process.stdin. Returns True if it was successful.
+        If it fails it also restarts hpctrl
         """
         message_string = "\n".join(messages)
         try:
@@ -143,7 +144,7 @@ class Adapter:
         except OSError:
             if message_string != "exit":
                 self.restart_hpctrl()
-            return False
+                return False
         return True
 
     def send_and_get_output(self, messages: list[str], timeout: float, lines: int) -> str:
