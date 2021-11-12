@@ -48,7 +48,7 @@ loop:
 		case cmdExit:
 			break loop
 		case cmdIdn:
-			fmt.Print(responseIdn)
+			fmt.Println(responseIdn)
 		}
 	}
 

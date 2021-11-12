@@ -146,6 +146,11 @@ class Adapter:
             return False
         return True
 
+    def send_and_get_output(self, messages: list[str], timeout: float, lines: int) -> str:
+        if not self.send(messages):
+            return ""
+        return self.get_output(timeout, lines)
+
     def connect(self, address: int) -> bool:
         """
         connets with LOGON, OSCI, CONNECT {address} commands. Returns True if successful
