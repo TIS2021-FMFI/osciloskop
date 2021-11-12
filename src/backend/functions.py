@@ -1,5 +1,5 @@
 import backend.adapter as ada
-
+import time
 
 class Functions:
     _instance = None
@@ -27,3 +27,8 @@ class Functions:
 
     def send_custom(self, message: str):
         self.adapter.send(message.split("\n"))
+
+    def _freeze_test(self):
+        print("starting 5 second sleep")
+        time.sleep(5)
+        print("finished 5 second sleep")
