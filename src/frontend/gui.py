@@ -1,6 +1,6 @@
 import PySimpleGUI as sg
 import backend.functions as f
-import threading, time
+import threading
 
 class GUI:
 
@@ -32,7 +32,8 @@ class GUI:
         ]
         win_4 = [
             [sg.Button("Send custom", size=button_size), sg.InputText("AAA", size=(15, 1), key="custom")],
-            [sg.Button("Quit GUI", size=button_size)]
+            [sg.Button("Quit GUI", size=button_size)],
+            [sg.Button("FREEZE BUTTON", size=button_size)]
         ]
 
         return [
@@ -43,7 +44,6 @@ class GUI:
     def run(self):
         # Event loop
         while True:
-            print("Number of threads:", threading.active_count())
             event, values = self.window.read()
             if event == "Connect":
                 threading.Thread(target=self.func.connect).start()
@@ -51,6 +51,8 @@ class GUI:
                 threading.Thread(target=self.func.disconnect).start()
             if event == "Send custom":
                 threading.Thread(target=self.func.send_custom, args=(values["custom"],)).start()
+            if event == "FREEZE BUTTON":
+                threading.Thread(target=self.func._freeze_test).start()
             if event in (sg.WIN_CLOSED, "Quit GUI"):
                 break
 
