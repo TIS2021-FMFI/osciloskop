@@ -7,12 +7,17 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
-	exitCmd  = "exit"
-	logPath  = "tools/fake_hpctrl/log"
-	filePerm = 0644
+	logPath       = "tools/fake_hpctrl/log"
+	filePerm      = 0644
+	endOfLineChar = 10
+	newLineChar   = '\n'
+	cmdExit       = "exit"
+	cmdIdn        = "q *IDN?"
+	responseIdn   = "HEWLETT-PACKARD,83480A,US35240110,07.12"
 )
 
 func main() {
@@ -27,26 +32,31 @@ func main() {
 	ExitIfErr(err)
 	defer f.Close()
 
-	writeToFile(f, "\n")
+	writeToFile(f, []byte(fmt.Sprintf("started at %v\n", time.Now())))
 
-	for true {
-		reader := bufio.NewReader(os.Stdin)
-		text, err := reader.ReadString('\n')
+	reader := bufio.NewReader(os.Stdin)
+
+loop:
+	for {
+		text, err := reader.ReadBytes(endOfLineChar)
 		ExitIfErr(err)
-		textTrimmed := strings.Join(strings.Fields(text), " ")
+		writeToFile(f, text)
 
-		writeToFile(f, textTrimmed+"\n")
+		textString := strings.TrimSpace(string(text))
 
-		fmt.Println(textTrimmed)
-
-		if textTrimmed == exitCmd {
-			return
+		switch textString {
+		case cmdExit:
+			break loop
+		case cmdIdn:
+			fmt.Println(responseIdn)
 		}
 	}
+
+	writeToFile(f, []byte{endOfLineChar})
 }
 
-func writeToFile(f *os.File, msg string) {
-	_, err := f.WriteString(msg)
+func writeToFile(f *os.File, msg []byte) {
+	_, err := f.Write(msg)
 	ExitIfErr(err)
 	f.Sync()
 }
