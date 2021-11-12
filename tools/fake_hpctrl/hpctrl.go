@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
 const (
-	logPath  = "tools/fake_hpctrl/log"
-	filePerm = 0644
+	logPath       = "tools/fake_hpctrl/log"
+	filePerm      = 0644
+	endOfLineChar = 10
+	newLineChar   = '\n'
 )
 
 func main() {
@@ -29,19 +32,24 @@ func main() {
 	writeToFile(f, []byte(fmt.Sprintf("started at %v\n", time.Now())))
 
 	reader := bufio.NewReader(os.Stdin)
-	var text []byte
 
+loop:
 	for {
-		b, err := reader.ReadByte()
-		if err != nil {
-			break
+		text, err := reader.ReadBytes(endOfLineChar)
+		ExitIfErr(err)
+		writeToFile(f, text)
+
+		textString := strings.TrimSpace(string(text))
+
+		switch textString {
+		case "exit":
+			break loop
+		case "q *IDN?":
+			fmt.Print("HEWLETT-PACKARD,83480A,US35240110,07.12")
 		}
-		text = append(text, b)
 	}
 
-	text = append(text, '\n')
-
-	writeToFile(f, text)
+	writeToFile(f, []byte{endOfLineChar})
 }
 
 func writeToFile(f *os.File, msg []byte) {
