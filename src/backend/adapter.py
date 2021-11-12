@@ -15,6 +15,15 @@ class Adapter:
     out_thread_killed: bool = False
     testing: bool = False
     hpctrl_executable: str = "tools/hpctrl/hpctrl"
+    cmd_leave_cmd: str = "."
+    cmd_enter_cmd: str = "cmd"
+    cmd_disconnect: str = "DISCONNECT"
+    cmd_logon: str = "LOGON"
+    cmd_osci: str = "OSCI"
+    cmd_connect: str = "CONNECT"
+    cmd_exit: str = "exit"
+    cmd_idn: str = "q *IDN?"
+    cmd_idn_response: str = "HEWLETT-PACKARD,83480A,US35240110,07.12"
 
     def __init__(self, testing: bool) -> None:
         self.testing = testing
@@ -41,7 +50,8 @@ class Adapter:
     def get_output(self, timeout: float, lines: int) -> str:
         """
         returns output from hpctrl as str. Returns empty string if there was no output.
-        Timeout arg is in seconds and lines arg is number of lines to be returned
+        Timeout arg is in seconds and lines arg is number of lines to be returned.
+        It also calls self.clear_input_queue() before it finishes
         """
         out_str = ""
         get_started = time.time()
@@ -68,7 +78,8 @@ class Adapter:
 
     def start_hpctrl(self) -> bool:
         """
-        starts hpctrl and returns true if it was successful
+        starts hpctrl and returns True if it was successful.
+        Return False is file was not found
         """
         try:
             self.process = subprocess.Popen(
@@ -96,7 +107,7 @@ class Adapter:
         kills running hpctrl
         """
         if self.process is not None:
-            self.send(["exit"])
+            self.send([self.cmd_exit])
         if self.out_thread is not None:
             self.out_thread_killed = True
             self.out_thread.join()
@@ -119,7 +130,7 @@ class Adapter:
         """
         returns True if hpctrl respones "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
         """
-        return self.send_and_get_output(["q *IDN?"], 0.1, 1) == "HEWLETT-PACKARD,83480A,US35240110,07.12"
+        return self.send_and_get_output([self.cmd_idn], 0.1, 1) == self.cmd_idn_response
 
     def send(self, messages: list[str]) -> bool:
         """
@@ -132,14 +143,14 @@ class Adapter:
             # TODO toto bolo pri hpctrl zmenene tak otestovat ci funguje bez sleep
             time.sleep(0.1)  # aby HPCTRL stihol spracovat prikaz, inak vypisuje !not ready, try again later (ping)
         except OSError:
-            if message_string != "exit":
+            if message_string != self.cmd_exit:
                 return False
         return True
 
     def send_and_get_output(self, messages: list[str], timeout: float, lines: int) -> str:
         """
         calls self.send(messages) and then self.get_output(timeout, lines).
-        Returns empty string if there was no output.
+        Returns empty string if there was no output or if someting is wrong with hpctrl.
         """
         if not self.send(messages):
             return ""
@@ -149,7 +160,7 @@ class Adapter:
         """
         connets with LOGON, OSCI, CONNECT {address} commands. Returns True if successful
         """
-        if not self.hpctrl_is_responsive or not self.send(["LOGON", "OSCI", f"CONNECT {address}"]):
+        if not self.hpctrl_is_responsive or not self.send([self.cmd_logon, self.cmd_osci, f"{self.cmd_connect} {address}"]):
             return False
         self.address = address
         self.connected = True
@@ -161,7 +172,7 @@ class Adapter:
         """
         if not self.connect:
             return True
-        if self.send(["DISCONNECT"]):
+        if self.send([self.cmd_disconnect]):
             self.address = None
             self.connected = False
             return True
@@ -175,7 +186,7 @@ class Adapter:
             return False
         if self.in_cmd_mode:
             return True
-        if self.send(["CMD"]):
+        if self.send([self.cmd_enter_cmd]):
             self.in_cmd_mode = True
             return True
         return False
@@ -188,7 +199,7 @@ class Adapter:
             return False
         if not self.in_cmd_mode:
             return True
-        if self.send(["."]):
+        if self.send([self.cmd_leave_cmd]):
             self.in_cmd_mode = False
             return True
         return False
