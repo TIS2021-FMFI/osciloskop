@@ -115,20 +115,11 @@ class Adapter:
         self.kill_hpctrl()
         self.start_hpctrl()
 
-    # TODO: toto bude zrejme inak
-    def hpctrl_is_responsive(self):
-        return True
-        # self.clear_input_queue()
-        # if not self.send(["ping"]):
-        #     return False
-        # out = self.get_output(4, 1)
-        # if out is None:
-        #     self.restart_hpctrl()  # restartujem ho, lebo nereaguje
-        #     return False
-        # if out.strip() == "!unknown command ping":
-        #     return True
-        # self.restart_hpctrl()
-        # return False
+    def hpctrl_is_responsive(self) -> bool:
+        """
+        returns True if hpctrl respones "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
+        """
+        return self.send_and_get_output(["q *IDN?"], 0.1, 1) == "HEWLETT-PACKARD,83480A,US35240110,07.12"
 
     def send(self, messages: list[str]) -> bool:
         """
