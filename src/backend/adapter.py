@@ -148,6 +148,10 @@ class Adapter:
         return True
 
     def send_and_get_output(self, messages: list[str], timeout: float, lines: int) -> str:
+        """
+        calls self.send(messages) and then self.get_output(timeout, lines).
+        Returns empty string if there was no output.
+        """
         if not self.send(messages):
             return ""
         return self.get_output(timeout, lines)
