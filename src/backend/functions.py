@@ -13,7 +13,7 @@ class Functions:
 
         return self._instance
 
-    def connect(self, address: int = 7):
+    def connect(self, address: int):
         self.adapter.connect(address)
 
     def disconnect(self):
