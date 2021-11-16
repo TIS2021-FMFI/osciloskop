@@ -7,11 +7,11 @@ import platform
 
 class Adapter:
     address: int
-    out_queue: queue.Queue
+    out_queue: queue.Queue = None
     connected: bool = False
     in_cmd_mode: bool = False
-    process: subprocess.Popen
-    out_thread: threading.Thread
+    process: subprocess.Popen = None
+    out_thread: threading.Thread = None
     out_thread_killed: bool = False
     testing: bool = False
     hpctrl_executable: str = "tools/hpctrl/hpctrl"
@@ -66,8 +66,7 @@ class Adapter:
 
         self.clear_input_queue()
 
-        out_str = out_str.strip()
-        return out_str
+        return out_str.strip()
 
     def clear_input_queue(self) -> None:
         """
@@ -81,6 +80,9 @@ class Adapter:
         starts hpctrl and returns True if it was successful.
         Return False if file was not found
         """
+        if self.hpctrl_is_running():
+            return True
+
         try:
             self.process = subprocess.Popen(
                 [self.hpctrl_executable, "-i"],
@@ -125,6 +127,10 @@ class Adapter:
         """
         self.kill_hpctrl()
         self.start_hpctrl()
+
+    def hpctrl_is_running(self) -> bool:
+        """returns True if hpctrl is running"""
+        return all([self.process, self.out_thread, self.out_queue])
 
     def hpctrl_is_responsive(self) -> bool:
         """
