@@ -142,6 +142,8 @@ class Adapter:
         """
         prints messages into self.process.stdin. Returns True if it was successful.
         """
+        if not self.hpctrl_is_running():
+            return False
         message_string = "\n".join(messages)
         try:
             print(message_string, file=self.process.stdin)
