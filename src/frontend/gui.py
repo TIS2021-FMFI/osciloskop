@@ -4,41 +4,52 @@ import threading
 
 class GUI:
 
+    WIDTH = 500
+
     def __init__(self):
+        sg.theme("DarkGrey9")
         self.func = f.Functions()
-        sg.theme("DarkAmber")
         self.layout = self.create_layout()
-        self.window = sg.Window("GUI application", self.layout, size=(500, 500), element_justification="center")
+        self.window = sg.Window("GUI application", self.layout, size=(self.WIDTH, 700), element_justification="center")
 
     def create_layout(self): 
         button_size = (10, 1)
         # Elements inside the window
-        win_1 = [
-            [sg.InputText("Address No.", key="terminal", size=(12, 1)), sg.Button("Connect", size=button_size)],
-            [sg.Button("Terminal", size=button_size), sg.Button("Disconnect", size=button_size)]
-        ]
-        win_2 = [
-            [sg.InputText("Average No.", size=(15, 1), key="average")],
-            [sg.InputText("Points 16-4096", size=(15, 1), key="points")],
-            [sg.Button("RESET", size=(12, 1))]
-        ]
-        win_3 = [
+        col_gpib = sg.Col([
+            [sg.Text("Address number:"), sg.InputText("7", size=(12, 1)), sg.Button("SET")],
+            [sg.Button("Connect", size=button_size), sg.Button("Disconnect", size=button_size)],
+            [sg.Button("Terminal", size=button_size)]
+        ], size=(self.WIDTH, 100), pad=(0,0))
+        
+        col_osci = sg.Col([
+            [sg.Text("Average No.")],
+            [sg.InputText("100"), sg.Button("SET", size=button_size)],
+            [sg.Text("Points")],
+            [sg.InputText("4096"), sg.Button("SET", size=button_size)],
             [sg.Checkbox("Channel 1"), sg.Checkbox("Channel 2")],
             [sg.Checkbox("Channel 3"), sg.Checkbox("Channel 4")],
-            [sg.Combo(values=["RAW", "average", "histogram H/V", "versus"], default_value="RAW")],
-            [sg.InputText("FILE_NAME", size=(25, 1)), sg.SaveAs("PATH/")],
+            [sg.Button("Reset Oscilloscope")]
+        ], size=(self.WIDTH, 220), pad=(0, 0))
+
+        col_run = sg.Col([
+            [sg.Text("Format type:"), sg.Combo(values=["RAW", "average", "histogram H/V", "versus"], default_value="versus")],
+            [sg.Text("File name")],
+            [sg.InputText("ch1_meranie", size=(25, 1)), sg.SaveAs("PATH/")],
             [sg.Button("SAVE", size=button_size), sg.Checkbox("AutoSave")],
-            [sg.Button("SINGLE", size=button_size), sg.Button("STOP", size=button_size), sg.Button("SINGLE", size=button_size)]
-        ]
-        win_4 = [
+            [sg.Button("RUN", size=button_size), sg.Button("STOP", size=button_size), sg.Button("SINGLE", size=button_size)]
+        ], size=(self.WIDTH, 120))
+
+        col_testing = sg.Col([
             [sg.Button("Send custom", size=button_size), sg.InputText("AAA", size=(15, 1), key="custom")],
             [sg.Button("Quit GUI", size=button_size)],
-            [sg.Button("FREEZE BUTTON", size=button_size)]
-        ]
+            [sg.Button("FREEZE", size=button_size)]
+        ], size=(self.WIDTH, 100))
 
         return [
-            [sg.Frame(layout=win, title='', element_justification="c")]
-            for win in (win_1, win_2, win_3, win_4)
+            [sg.Frame("GPIB Settings", [[col_gpib]])],
+            [sg.Frame("Oscilloscope settings", [[col_osci]])],
+            [sg.Frame("Run and save", [[col_run]])],
+            [sg.Frame("Testing", [[col_testing]])],
         ]
 
     def run(self):
@@ -51,7 +62,7 @@ class GUI:
                 threading.Thread(target=self.func.disconnect).start()
             if event == "Send custom":
                 threading.Thread(target=self.func.send_custom, args=(values["custom"],)).start()
-            if event == "FREEZE BUTTON":
+            if event == "FREEZE":
                 threading.Thread(target=self.func._freeze_test).start()
             if event in (sg.WIN_CLOSED, "Quit GUI"):
                 break
