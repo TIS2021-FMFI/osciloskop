@@ -1,18 +1,18 @@
 import PySimpleGUI as sg
-import backend.functions as f
-import threading
+from backend.commands import CommandError, Commands
+from threading import Thread
 
 class GUI:
 
-    WIDTH = 500
+    WIDTH, HEIGHT = 500, 800
 
     def __init__(self):
         sg.theme("DarkGrey9")
-        self.func = f.Functions()
-        self.layout = self.create_layout()
-        self.window = sg.Window("GUI application", self.layout, size=(self.WIDTH, 800), element_justification="center")
+        self.func = Commands()
+        self.layout = self._create_layout()
+        self.window = sg.Window("Oscilloscope control", self.layout, size=(self.WIDTH, self.HEIGHT), element_justification="c")
 
-    def create_layout(self): 
+    def _create_layout(self): 
         button_size = (10, 1)
         # Elements inside the window
         col_gpib = sg.Col([
@@ -37,7 +37,7 @@ class GUI:
             [sg.InputText("ch1_meranie", size=(25, 1)), sg.SaveAs("PATH/")],
             [sg.Button("SAVE", size=button_size), sg.Checkbox("AutoSave")],
             [sg.Button("RUN", size=button_size), sg.Button("STOP", size=button_size), sg.Button("SINGLE", size=button_size)]
-        ], size=(self.WIDTH, 120))
+        ], size=(self.WIDTH, 150))
 
         col_testing = sg.Col([
             [sg.Button("Send custom", size=button_size), sg.InputText("AAA", size=(15, 1), key="custom")],
@@ -61,20 +61,19 @@ class GUI:
         # Event loop
         while True:
             event, values = self.window.read()
-            if event == "Connect":
-                if values["address"].isnumeric() and int(values["address"]) in range(1, 15):
-                    threading.Thread(target=self.func.connect, args=(int(values["address"]),)).start()
-                    self.window["curr_add"].update(f"Current address: {values['address']}")
-                else:
-                    sg.popup(f"{values['address']} is not a valid address")
-            elif event == "Disconnect":
-                threading.Thread(target=self.func.disconnect).start()
-                self.window["curr_add"].update("Current address: None")
-            elif event == "Send custom":
-                threading.Thread(target=self.func.send_custom, args=(values["custom"],)).start()
-            elif event == "FREEZE":
-                threading.Thread(target=self.func._freeze_test).start()
-            elif event in (sg.WIN_CLOSED, "Quit GUI"):
-                break
+            try:
+                if event == "Connect":
+                    self.func.connect(values["address"])
+                elif event == "Disconnect":
+                    self.func.disconnect()
+                    self.window["curr_add"].update("Current address: None")
+                elif event == "Send custom":
+                    self.func.send_custom(values["custom"])
+                elif event == "FREEZE":
+                    Thread(target=self.func._freeze_test).start()
+                elif event in (sg.WIN_CLOSED, "Quit GUI"):
+                    break
+            except CommandError as e:
+                sg.popup(e)
 
         self.window.close()
