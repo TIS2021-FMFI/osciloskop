@@ -1,5 +1,5 @@
-import frontend.gui as fr
+from frontend.gui import GUI
 
 if __name__ == "__main__":
-    gui = fr.GUI()
+    gui = GUI()
     gui.run()
