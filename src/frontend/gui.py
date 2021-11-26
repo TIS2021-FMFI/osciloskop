@@ -8,7 +8,7 @@ class GUI:
 
     def __init__(self):
         sg.theme("DarkGrey9")
-        self.func = Commands()
+        self.cmd = Commands()
         self.layout = self._create_layout()
         self.window = sg.Window("Oscilloscope control", self.layout, size=(self.WIDTH, self.HEIGHT), element_justification="c")
 
@@ -63,14 +63,14 @@ class GUI:
             event, values = self.window.read()
             try:
                 if event == "Connect":
-                    self.func.connect(values["address"])
+                    self.cmd.connect_and_enter_cmd_mode(values["address"])
                 elif event == "Disconnect":
-                    self.func.disconnect()
+                    self.cmd.disconnect_and_exit_cmd_mode()
                     self.window["curr_add"].update("Current address: None")
                 elif event == "Send custom":
-                    self.func.send_custom(values["custom"])
+                    self.cmd.send_custom(values["custom"])
                 elif event == "FREEZE":
-                    Thread(target=self.func._freeze_test).start()
+                    Thread(target=self.cmd._freeze_test).start()
                 elif event in (sg.WIN_CLOSED, "Quit GUI"):
                     break
             except CommandError as e:

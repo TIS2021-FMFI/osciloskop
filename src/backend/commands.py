@@ -16,17 +16,22 @@ class Commands:
 
         return self._instance
 
-    def connect(self, address: str):
+    def connect_and_enter_cmd_mode(self, address: str):
         min_address = 1
         max_address = 31
         if address not in [str(i) for i in range(min_address, max_address+1)]:
             raise CommandError(f"{address} is not a valid address")
         if not self.adapter.connect(int(address)):
             raise CommandError("Could not connect")
+        if not self.adapter.enter_cmd_mode():
+            raise CommandError("Could not enter the CMD mode")
 
-    def disconnect(self):
+
+    def disconnect_and_exit_cmd_mode(self):
         if not self.adapter.disconnect():
             raise CommandError("Could not disconnect")
+        if not self.adapter.exit_cmd_mode():
+            raise CommandError("Could not leave the CMD mode")
 
     def enter_cmd(self):
         if not self.adapter.enter_cmd_mode():
