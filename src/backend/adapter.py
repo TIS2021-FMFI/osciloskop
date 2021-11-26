@@ -132,9 +132,9 @@ class Adapter:
         """returns True if hpctrl is running"""
         return all([self.process, self.out_thread, self.out_queue])
 
-    def hpctrl_is_responsive(self) -> bool:
+    def osci_is_responsive(self) -> bool:
         """
-        returns True if hpctrl responds "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
+        returns True if oscilloscope responds "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
         """
         return self.send_and_get_output([self.cmd_idn], 0.1, 1) == self.cmd_idn_response
 
@@ -168,7 +168,7 @@ class Adapter:
         """
         connets with LOGON, OSCI, CONNECT {address} commands. Returns True if successful
         """
-        if not self.hpctrl_is_responsive or not self.send([self.cmd_logon, self.cmd_osci, f"{self.cmd_connect} {address}"]):
+        if not self.osci_is_responsive or not self.send([self.cmd_logon, self.cmd_osci, f"{self.cmd_connect} {address}"]):
             return False
         self.address = address
         self.connected = True
@@ -211,26 +211,3 @@ class Adapter:
             self.in_cmd_mode = False
             return True
         return False
-
-    # def cmd_send(self, message: str):
-    #     if not self.connected or not self.in_cmd_mode:
-    #         return False
-    #     message = message.strip().lower()
-    #     if message in (".", "cmd", "exit"):
-    #         return True
-    #     index = message.find(" ")
-    #     prve_slovo = message[:index] if index > 0 else message
-    #     if not self.send([f"{message}"]):
-    #         return None
-
-    #     self.in_cmd_mode = True
-    #     if prve_slovo in ("q", "a", "c", "d", "b", "?", "help"):
-    #         output = self.get_output(10, 1)
-    #         if output is None:
-    #             return None
-    #         while not self.out_queue.empty():
-    #             riadky = self.get_output(0.2)
-    #             if riadky is not None:
-    #                 output += "\n" + riadky
-    #         return output
-    #     return True
