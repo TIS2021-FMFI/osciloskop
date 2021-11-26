@@ -28,10 +28,10 @@ class Commands:
 
 
     def disconnect_and_exit_cmd_mode(self):
-        if not self.adapter.disconnect():
-            raise CommandError("Could not disconnect")
         if not self.adapter.exit_cmd_mode():
             raise CommandError("Could not leave the CMD mode")
+        if not self.adapter.disconnect():
+            raise CommandError("Could not disconnect")
 
     def enter_cmd(self):
         if not self.adapter.enter_cmd_mode():

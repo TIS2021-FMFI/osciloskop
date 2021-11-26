@@ -5,6 +5,11 @@ from threading import Thread
 class GUI:
 
     WIDTH, HEIGHT = 500, 800
+    # make const of every string that is repeated more than once
+    word_connect = "Connect"
+    word_disconnect = "Disconnect"
+    word_quit_gui = "Quit GUI"
+    word_address = "address"
 
     def __init__(self):
         sg.theme("DarkGrey9")
@@ -16,8 +21,8 @@ class GUI:
         button_size = (10, 1)
         # Elements inside the window
         col_gpib = sg.Col([
-            [sg.Text("Address number:"), sg.InputText("7", size=(12, 1), key="address")],
-            [sg.Button("Connect", size=button_size), sg.Button("Disconnect", size=button_size)],
+            [sg.Text("Address number:"), sg.InputText("7", size=(12, 1), key=self.word_address)],
+            [sg.Button(self.word_connect, size=button_size), sg.Button(self.word_disconnect, size=button_size)],
             [sg.Button("Terminal", size=button_size)]
         ], size=(self.WIDTH, 100), pad=(0,0))
         
@@ -41,7 +46,7 @@ class GUI:
 
         col_testing = sg.Col([
             [sg.Button("Send custom", size=button_size), sg.InputText("AAA", size=(15, 1), key="custom")],
-            [sg.Button("Quit GUI", size=button_size)],
+            [sg.Button(self.word_quit_gui, size=button_size)],
             [sg.Button("FREEZE", size=button_size)]
         ], size=(self.WIDTH, 100))
 
@@ -62,16 +67,16 @@ class GUI:
         while True:
             event, values = self.window.read()
             try:
-                if event == "Connect":
-                    self.cmd.connect_and_enter_cmd_mode(values["address"])
-                elif event == "Disconnect":
+                if event == self.word_connect:
+                    self.cmd.connect_and_enter_cmd_mode(values[self.word_address])
+                elif event == self.word_disconnect:
                     self.cmd.disconnect_and_exit_cmd_mode()
                     self.window["curr_add"].update("Current address: None")
                 elif event == "Send custom":
                     self.cmd.send_custom(values["custom"])
                 elif event == "FREEZE":
                     Thread(target=self.cmd._freeze_test).start()
-                elif event in (sg.WIN_CLOSED, "Quit GUI"):
+                elif event in (sg.WIN_CLOSED, self.word_quit_gui):
                     break
             except CommandError as e:
                 sg.popup(e)
