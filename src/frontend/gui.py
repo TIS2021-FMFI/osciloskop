@@ -5,7 +5,6 @@ from os import listdir
 
 class GUI:
 
-    # WIDTH, HEIGHT = 750, 425
     WIDTH, HEIGHT = 750, 700
     # make const of every string that is repeated more than once
     word_connect = "Connect"
@@ -77,15 +76,19 @@ class GUI:
             if event == "Discard":
                 break
             elif event == "Save":
-                config_content = values["cfg_input"]
-                config_name = values["cfg_name"]
+                if not values["cfg_name"]:
+                    sg.popup("Config name is empty")
+                else:
+                    config_content = values["cfg_input"]
+                    config_name = values["cfg_name"]
+                    break
+            elif event == sg.WIN_CLOSED:
                 break
         window.close()
         return config_content, config_name
 
     def run_config(self, file_name):
         rows = []
-        print(self.currently_set_values)
         with open(file_name) as f:
             for line in f:
                 line = line.strip()
@@ -97,7 +100,6 @@ class GUI:
                     if command in self.currently_set_values.keys():
                         input_default = self.currently_set_values[command]
                     rows.append([sg.Text(command), sg.InputText(input_default, size=(10, 1), key=f"b{len(rows)}"), sg.Button("set", key=len(rows))])
-                    print(len(rows))
         rows.append([sg.Button("Set all"), sg.Button("Close")])
         window = sg.Window("Run config", rows)
         while True:
@@ -150,7 +152,11 @@ class GUI:
                     config_content, config_name = self.open_config_creation()
                     self.write_config(config_content, config_name)
                 elif event == "Load config":
-                    self.run_config("config\\"+values["cfg_file"])
+                    file_name = values["cfg_file"]
+                    if file_name:
+                        self.run_config("config\\"+file_name)
+                    else:
+                        sg.popup("File not chosen")
                 elif event in (sg.WIN_CLOSED, self.word_quit_gui):
                     break
                 self.update_info()
