@@ -7,11 +7,11 @@ import platform
 
 class Adapter:
     address: int
-    out_queue: queue.Queue
+    out_queue: queue.Queue = None
     connected: bool = False
     in_cmd_mode: bool = False
-    process: subprocess.Popen
-    out_thread: threading.Thread
+    process: subprocess.Popen = None
+    out_thread: threading.Thread = None
     out_thread_killed: bool = False
     testing: bool = False
     hpctrl_executable: str = "tools/hpctrl/hpctrl"
@@ -66,8 +66,7 @@ class Adapter:
 
         self.clear_input_queue()
 
-        out_str = out_str.strip()
-        return out_str
+        return out_str.strip()
 
     def clear_input_queue(self) -> None:
         """
@@ -79,8 +78,11 @@ class Adapter:
     def start_hpctrl(self) -> bool:
         """
         starts hpctrl and returns True if it was successful.
-        Return False is file was not found
+        Return False if file was not found
         """
+        if self.hpctrl_is_running():
+            return True
+
         try:
             self.process = subprocess.Popen(
                 [self.hpctrl_executable, "-i"],
@@ -104,19 +106,19 @@ class Adapter:
 
     def kill_hpctrl(self) -> None:
         """
-        kills running hpctrl
+        sends exit command to hpctrl or kills it if it's frozen
         """
         if self.process is not None:
             self.send([self.cmd_exit])
+            # maybe we'll have to sleep here for a few ms
         if self.out_thread is not None:
             self.out_thread_killed = True
             self.out_thread.join()
             self.out_thread = None
-        # TODO: ma zmysel ze horna a dolna podmienka je rovnaka?
-        if self.process is not None:
-            self.process.terminate()
-            self.process.kill()
-            self.process = None
+            if self.process is not None:
+                self.process.terminate()
+                self.process.kill()
+                self.process = None
         self.out_queue = None
 
     def restart_hpctrl(self) -> None:
@@ -126,9 +128,13 @@ class Adapter:
         self.kill_hpctrl()
         self.start_hpctrl()
 
-    def hpctrl_is_responsive(self) -> bool:
+    def hpctrl_is_running(self) -> bool:
+        """returns True if hpctrl is running"""
+        return all([self.process, self.out_thread, self.out_queue])
+
+    def osci_is_responsive(self) -> bool:
         """
-        returns True if hpctrl respones "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
+        returns True if oscilloscope responds "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
         """
         return self.send_and_get_output([self.cmd_idn], 0.1, 1) == self.cmd_idn_response
 
@@ -136,6 +142,8 @@ class Adapter:
         """
         prints messages into self.process.stdin. Returns True if it was successful.
         """
+        if not self.hpctrl_is_running():
+            return False
         message_string = "\n".join(messages)
         try:
             print(message_string, file=self.process.stdin)
@@ -160,7 +168,7 @@ class Adapter:
         """
         connets with LOGON, OSCI, CONNECT {address} commands. Returns True if successful
         """
-        if not self.hpctrl_is_responsive or not self.send([self.cmd_logon, self.cmd_osci, f"{self.cmd_connect} {address}"]):
+        if not self.send([self.cmd_logon, self.cmd_osci, f"{self.cmd_connect} {address}"]):
             return False
         self.address = address
         self.connected = True
@@ -170,7 +178,7 @@ class Adapter:
         """
         disconnets with DISCONNECT command if possible. Returns True if successful
         """
-        if not self.connect:
+        if not self.connected:
             return True
         if self.send([self.cmd_disconnect]):
             self.address = None
@@ -203,26 +211,3 @@ class Adapter:
             self.in_cmd_mode = False
             return True
         return False
-
-    # def cmd_send(self, message: str):
-    #     if not self.connected or not self.in_cmd_mode:
-    #         return False
-    #     message = message.strip().lower()
-    #     if message in (".", "cmd", "exit"):
-    #         return True
-    #     index = message.find(" ")
-    #     prve_slovo = message[:index] if index > 0 else message
-    #     if not self.send([f"{message}"]):
-    #         return None
-
-    #     self.in_cmd_mode = True
-    #     if prve_slovo in ("q", "a", "c", "d", "b", "?", "help"):
-    #         output = self.get_output(10, 1)
-    #         if output is None:
-    #             return None
-    #         while not self.out_queue.empty():
-    #             riadky = self.get_output(0.2)
-    #             if riadky is not None:
-    #                 output += "\n" + riadky
-    #         return output
-    #     return True
