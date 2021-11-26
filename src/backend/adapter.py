@@ -106,19 +106,19 @@ class Adapter:
 
     def kill_hpctrl(self) -> None:
         """
-        kills running hpctrl
+        sends exit command to hpctrl or kills it if it's frozen
         """
         if self.process is not None:
             self.send([self.cmd_exit])
+            # maybe we'll have to sleep here for a few ms
         if self.out_thread is not None:
             self.out_thread_killed = True
             self.out_thread.join()
             self.out_thread = None
-        # TODO: ma zmysel ze horna a dolna podmienka je rovnaka?
-        if self.process is not None:
-            self.process.terminate()
-            self.process.kill()
-            self.process = None
+            if self.process is not None:
+                self.process.terminate()
+                self.process.kill()
+                self.process = None
         self.out_queue = None
 
     def restart_hpctrl(self) -> None:
