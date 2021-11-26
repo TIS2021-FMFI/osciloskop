@@ -168,7 +168,7 @@ class Adapter:
         """
         connets with LOGON, OSCI, CONNECT {address} commands. Returns True if successful
         """
-        if not self.osci_is_responsive or not self.send([self.cmd_logon, self.cmd_osci, f"{self.cmd_connect} {address}"]):
+        if not self.send([self.cmd_logon, self.cmd_osci, f"{self.cmd_connect} {address}"]):
             return False
         self.address = address
         self.connected = True
