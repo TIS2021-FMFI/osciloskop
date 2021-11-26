@@ -45,6 +45,10 @@ class Commands:
         if not self.adapter.send(message.split("\n")):
             raise CommandError("Something went wrong")
 
+    def exit(self):
+        self.adapter.disconnect()
+        self.adapter.kill_hpctrl()
+
     def _freeze_test(self):
         print("starting 5 second sleep")
         sleep(5)
