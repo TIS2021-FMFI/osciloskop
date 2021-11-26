@@ -178,7 +178,7 @@ class Adapter:
         """
         disconnets with DISCONNECT command if possible. Returns True if successful
         """
-        if not self.connect:
+        if not self.connected:
             return True
         if self.send([self.cmd_disconnect]):
             self.address = None
