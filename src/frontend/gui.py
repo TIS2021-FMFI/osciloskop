@@ -19,7 +19,7 @@ class GUI:
         self.layout = self._create_layout()
         self.window = sg.Window("Oscilloscope control", self.layout, size=(self.WIDTH, self.HEIGHT), element_justification="c")
 
-    def _create_layout(self): 
+    def _create_layout(self) -> list: 
         button_size = (10, 1)
         # Elements inside the window
         col_gpib = sg.Col([
@@ -62,7 +62,8 @@ class GUI:
             [sg.Frame("Info", [[col_info]])]
         ]
 
-    def open_config_creation(self):
+    def open_config_creation(self) -> tuple[str]:
+        # opens a new window for creating a new configuration file
         layout = [
             [sg.Multiline(key="cfg_input")],
             [sg.Button("Save"), sg.Button("Discard")],
@@ -87,48 +88,51 @@ class GUI:
         window.close()
         return config_content, config_name
 
-    def run_config(self, file_name):
-        rows = []
+    def _create_config_layout(self, file_name) -> tuple[list]:
+        rows = []   # layout rows
+        buttons = []    # [command_text, input_key]
         with open(file_name) as f:
             for line in f:
                 line = line.strip()
                 if "#" not in line:
                     rows.append([sg.Text(line), sg.Button("set", key=len(rows))])
+                    buttons.append((line,))
                 elif len(line.split()) > 1:
                     command = line.split()[:-1][0]
                     input_default = ""
                     if command in self.currently_set_values.keys():
                         input_default = self.currently_set_values[command]
-                    rows.append([sg.Text(command), sg.InputText(input_default, size=(10, 1), key=f"b{len(rows)}"), sg.Button("set", key=len(rows))])
+                    input_key = f"input {len(rows)}"
+                    buttons.append((command, input_key))
+                    rows.append([sg.Text(command),
+                        sg.InputText(input_default, size=(10, 1), key=input_key),
+                        sg.Button("set", key=len(rows))
+                    ])
         rows.append([sg.Button("Set all"), sg.Button("Close")])
-        window = sg.Window("Run config", rows)
+        return rows, buttons
+
+    def _run_config_command(self, row_index, values, buttons):
+        command = buttons[row_index][0]
+        value = values[buttons[row_index][1]] if len(buttons[row_index]) == 2 else ""
+        self.cmd.send_custom(f"{command} {value}")
+        self.currently_set_values[command] = value
+
+    def open_config_window(self, file_name):
+        layout, buttons = self._create_config_layout(file_name)
+        window = sg.Window("Run config", layout)
         while True:
             event, values = window.read()
             if event == "Set all":
-                for i, row in enumerate(rows[:-1]):
-                    label = row[0]
-                    if len(row) == 2:
-                        self.cmd.send_custom(label.DisplayText)
-                        self.currently_set_values[label.DisplayText] = ""
-                    elif len(row) == 3:
-                        self.cmd.send_custom(f"{label.DisplayText} {values[f'b{i}']}")
-                        self.currently_set_values[label.DisplayText] = values[f'b{i}']
-            elif event in range(len(rows)):
-                i = int(event)
-                row = rows[i]
-                label = row[0]
-                if len(row) == 2:
-                    self.cmd.send_custom(label.DisplayText)
-                    self.currently_set_values[label.DisplayText] = ""
-                elif len(row) == 3:
-                    self.cmd.send_custom(f"{label.DisplayText} {values[f'b{i}']}")
-                    self.currently_set_values[label.DisplayText] = values[f'b{i}']
+                for i in range(len(buttons)):
+                    self._run_config_command(i, values, buttons)
+            elif event in range(len(buttons)):
+                self._run_config_command(int(event), values, buttons)
             elif event in (sg.WIN_CLOSED, "Close"):
                 break
         self.update_info()
         window.close()
 
-    def write_config(self, config_content, file_name):
+    def create_config_file(self, config_content, file_name):
         if config_content:
             with open(f"config\\{file_name}.txt", "w") as f:
                 f.write(config_content)
@@ -150,11 +154,11 @@ class GUI:
                     self.cmd.disconnect_and_exit_cmd_mode()
                 elif event == "New config":
                     config_content, config_name = self.open_config_creation()
-                    self.write_config(config_content, config_name)
+                    self.create_config_file(config_content, config_name)
                 elif event == "Load config":
                     file_name = values["cfg_file"]
                     if file_name:
-                        self.run_config("config\\"+file_name)
+                        self.open_config_window("config\\"+file_name)
                     else:
                         sg.popup("File not chosen")
                 elif event in (sg.WIN_CLOSED, self.word_quit_gui):
