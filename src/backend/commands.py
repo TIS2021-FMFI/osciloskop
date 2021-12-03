@@ -45,6 +45,16 @@ class Commands:
         if not self.adapter.send(message.split("\n")):
             raise CommandError("Something went wrong")
 
+    def set_path(self, path: str):
+        if not self.adapter.send(f"FILE {path}"):
+            raise CommandError("Something went wrong")
+
+    def set_points(self, points: str):
+        if not points.isnumeric():
+            raise CommandError(f"{points} is not a number")
+        if not self.adapter.send(f"s: ACQUIRE:POINTS {points}"):
+            raise CommandError("Something went wrong")
+
     def exit(self):
         self.adapter.disconnect()
         self.adapter.kill_hpctrl()
