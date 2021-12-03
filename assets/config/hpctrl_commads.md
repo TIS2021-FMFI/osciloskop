@@ -1,0 +1,55 @@
+- po dokonceni kazdej sekvencie prikazov by mal program skocit von z cmd modu
+
+# at the beginning
+
+osci
+connect {int}
+
+# average single run (output on stdout)
+
+cmd
+s :acquire:type average
+s :waveform:source channel{int}
+s :acquire:count {int}
+s :acquire:points {int}
+s :digitize channel{int}
+s :waveform:data?
+16
+.
+
+# average continuous run (output in a file)
+
+file {str}
+cmd
+s :acquire:type average
+s :waveform:source channel{int}
+s :acquire:count {int}
+s :acquire:points {int}
+?s :digitize channel{int}
+s :run
+*
+?
+s :stop
+.
+
+# raw single run (output on stdout)
+
+cmd
+s :acquire:type normal
+s :waveform:source channel{int}
+s :digitize channel{int}
+q :waveform:data?
+16
+.
+
+# raw continuous run (output in a file)
+
+file {str}
+cmd
+s :acquire:type normal
+s :waveform:source channel{int}
+?s :digitize channel{int}
+s :run
+*
+?
+s :stop
