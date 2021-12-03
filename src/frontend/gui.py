@@ -32,7 +32,7 @@ class GUI:
             [sg.Text("Average No.")],
             [sg.InputText("100", size=button_size), sg.Button("SET", size=button_size)],
             [sg.Text("Points")],
-            [sg.InputText("4096", size=button_size), sg.Button("SET", size=button_size)],
+            [sg.InputText("4096", size=button_size, key="curr_points"), sg.Button("SET", size=button_size, key="set_points")],
             [sg.Checkbox("Channel 1"), sg.Checkbox("Channel 2")],
             [sg.Checkbox("Channel 3"), sg.Checkbox("Channel 4")],
             [sg.Button("Reset Oscilloscope")]
@@ -41,7 +41,7 @@ class GUI:
         col_run = sg.Col([
             [sg.Text("Format type:"), sg.Combo(values=["RAW", "average"], default_value="RAW")],
             [sg.Text("File name")],
-            [sg.InputText("ch1_meranie", size=(25, 1)), sg.SaveAs("PATH/")],
+            [sg.InputText("ch1_meranie", size=(25, 1), key="curr_path"), sg.SaveAs("Browse"), sg.Button("SET", key="set_path")],
             [sg.Button("SAVE", size=button_size), sg.Checkbox("AutoSave")],
             [sg.Button("RUN", size=button_size), sg.Button("STOP", size=button_size), sg.Button("SINGLE", size=button_size)]
         ], size=(self.WIDTH/2, 150), pad=(0,0))
@@ -161,6 +161,12 @@ class GUI:
                         self.open_config_window("config\\"+file_name)
                     else:
                         sg.popup("File not chosen")
+                elif event == "set_path":
+                    self.cmd.set_path(values["curr_path"])
+                    self.currently_set_values["path"] = values["curr_path"]
+                elif event == "set_points":
+                    self.cmd.set_points(values["curr_points"])
+                    self.currently_set_values["points"] = values["curr_points"]
                 elif event in (sg.WIN_CLOSED, self.word_quit_gui):
                     break
                 self.update_info()
