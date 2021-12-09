@@ -30,11 +30,11 @@ class GUI:
         
         col_osci = sg.Col([
             [sg.Text("Average No.")],
-            [sg.InputText("100", size=button_size), sg.Button("SET", size=button_size)],
+            [sg.InputText("100", size=button_size, key="curr_avg"), sg.Button("SET", size=button_size, key="set_average")],
             [sg.Text("Points")],
             [sg.InputText("4096", size=button_size, key="curr_points"), sg.Button("SET", size=button_size, key="set_points")],
-            [sg.Checkbox("Channel 1"), sg.Checkbox("Channel 2")],
-            [sg.Checkbox("Channel 3"), sg.Checkbox("Channel 4")],
+            [sg.Checkbox("Channel 1", enable_events=True, key="ch1"), sg.Checkbox("Channel 2", enable_events=True, key="ch2")],
+            [sg.Checkbox("Channel 3", enable_events=True, key="ch3"), sg.Checkbox("Channel 4", enable_events=True, key="ch4")],
             [sg.Button("Reset Oscilloscope")]
         ], size=(self.WIDTH/2, 220), pad=(0,0))
 
@@ -47,7 +47,7 @@ class GUI:
         ], size=(self.WIDTH/2, 150), pad=(0,0))
 
         col_cfg = sg.Col([
-            [sg.Button("New config"), sg.Button("Load config"), sg.Combo(values=[f for f in listdir("config") if f.endswith(".txt")], key="cfg_file")]],
+            [sg.Button("New config"), sg.Button("Load config"), sg.Combo(values=[f for f in listdir("assets\\config") if f.endswith(".txt")], key="cfg_file")]],
             key="cfg_col", pad=(0,0), size=(self.WIDTH/2,220), scrollable=True)
 
         col_info = sg.Col([
@@ -167,6 +167,11 @@ class GUI:
                 elif event == "set_points":
                     self.cmd.set_points(values["curr_points"])
                     self.currently_set_values["points"] = values["curr_points"]
+                elif event == "set_average":
+                    # self.cmd.set_average(values["curr_avg"])   # todo v Commands vytvorit funkciu
+                    self.currently_set_values["average"] = values["curr_avg"]
+                elif event in ("ch1", "ch2", "ch3", "ch4"):
+                    self.currently_set_values[event] = values[event]
                 elif event in (sg.WIN_CLOSED, self.word_quit_gui):
                     break
                 self.update_info()
