@@ -43,7 +43,7 @@ class GUI:
             [sg.Text("File name")],
             [sg.InputText("ch1_meranie", size=(25, 1), key="curr_path"), sg.SaveAs("Browse"), sg.Button("SET", key="set_path")],
             [sg.Button("SAVE", size=button_size), sg.Checkbox("AutoSave")],
-            [sg.Button("RUN", size=button_size), sg.Button("STOP", size=button_size), sg.Button("SINGLE", size=button_size)]
+            [sg.Button("RUN", size=button_size, disabled=True), sg.Button("STOP", size=button_size), sg.Button("SINGLE", size=button_size)]
         ], size=(self.WIDTH/2, 150), pad=(0,0))
 
         col_cfg = sg.Col([
@@ -141,6 +141,9 @@ class GUI:
     def update_info(self):
         info_content = [f"{key} = {value}" for key, value in self.currently_set_values.items()]
         self.window["info"].update("\n".join(info_content))
+    
+    def button_activation(self, disable: bool):
+        self.window["RUN"].update(disabled=disable)
 
     def run(self):
         # Event loop
@@ -150,8 +153,10 @@ class GUI:
                 if event == self.word_connect:
                     self.cmd.connect_and_enter_cmd_mode(values[self.word_address])
                     self.currently_set_values[event] = values[self.word_address]
+                    self.button_activation(False)
                 elif event == self.word_disconnect:
                     self.cmd.disconnect_and_exit_cmd_mode()
+                    self.button_activation(True)
                 elif event == "New config":
                     config_content, config_name = self.open_config_creation()
                     self.create_config_file(config_content, config_name)
