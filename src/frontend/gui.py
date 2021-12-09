@@ -1,3 +1,4 @@
+import os
 import PySimpleGUI as sg
 from backend.commands import CommandError, Commands
 from threading import Thread
@@ -47,7 +48,7 @@ class GUI:
         ], size=(self.WIDTH/2, 150), pad=(0,0))
 
         col_cfg = sg.Col([
-            [sg.Button("New config"), sg.Button("Load config"), sg.Combo(values=[f for f in listdir("assets\\config") if f.endswith(".txt")], key="cfg_file")]],
+            [sg.Button("New config"), sg.Button("Load config"), sg.Combo(values=[f for f in listdir(os.path.join("assets", "config")) if f.endswith(".txt")], key="cfg_file")]],
             key="cfg_col", pad=(0,0), size=(self.WIDTH/2,220), scrollable=True)
 
         col_info = sg.Col([
@@ -134,7 +135,7 @@ class GUI:
 
     def create_config_file(self, config_content, file_name):
         if config_content:
-            with open(f"config\\{file_name}.txt", "w") as f:
+            with open(os.path.join("config", f"{file_name}.txt"), "w") as f:
                 f.write(config_content)
         self.window["cfg_file"].update(values=[f for f in listdir("config") if f.endswith(".txt")])
 
@@ -163,7 +164,7 @@ class GUI:
                 elif event == "Load config":
                     file_name = values["cfg_file"]
                     if file_name:
-                        self.open_config_window("config\\"+file_name)
+                        self.open_config_window(os.path.join("config", file_name))
                     else:
                         sg.popup("File not chosen")
                 elif event == "set_path":
