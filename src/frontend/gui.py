@@ -8,9 +8,9 @@ class GUI:
 
     WIDTH, HEIGHT = 750, 700
     # make const of every string that is repeated more than once
-    word_connect = "Connect"
-    word_disconnect = "Disconnect"
-    word_quit_gui = "Quit GUI"
+    word_connect = "connect"
+    word_disconnect = "disconnect"
+    word_quit_gui = "quit GUI"
     word_address = "address"
 
     def __init__(self):
@@ -31,9 +31,12 @@ class GUI:
         ], size=(self.WIDTH/2, 150), pad=(0,0))
         
         col_osci = sg.Col([
-            [sg.Checkbox("turn on average",  enable_events=True, key="turn_on_average")],
             [sg.Text("Average No.")],
-            [sg.InputText("100", size=button_size, key="curr_avg"), sg.Button("SET", size=button_size, key="set_average")],
+            [   # todo it's doing weird stuff when hiding/showing
+                sg.Checkbox("averaging", enable_events=True, key="averaging", default=True),
+                sg.InputText("100", size=button_size, key="curr_avg"),
+                sg.Button("SET", size=button_size, key="set_avg")
+            ],
             [sg.Text("Points")],
             [sg.InputText("4096", size=button_size, key="curr_points"), sg.Button("SET", size=button_size, key="set_points")],
             [sg.Checkbox("Channel 1", enable_events=True, key="ch1"), sg.Checkbox("Channel 2", enable_events=True, key="ch2")],
@@ -175,7 +178,7 @@ class GUI:
                 elif event == "set_points":
                     self.cmd.set_points(values["curr_points"])
                     self.currently_set_values["points"] = values["curr_points"]
-                elif event == "set_average":
+                elif event == "set_avg":
                     self.cmd.set_average_no(values["curr_avg"])
                     self.currently_set_values["average"] = values["curr_avg"]
                 elif event in ("ch1", "ch2", "ch3", "ch4"):
@@ -183,12 +186,16 @@ class GUI:
                         self.currently_set_values["channels"].append(event)
                     else:
                         self.currently_set_values["channels"].remove(event)
-                elif event == "turn_on_average":
+                elif event == "averaging":
+                    self.window["averaging"].update(not values[event])  # if throws an error don't change checkbox
                     if values[event] == True:
                         self.cmd.turn_on_average()
                     else:
                         self.cmd.turn_off_average()
+                    self.window["curr_avg"].update(visible=values[event])
+                    self.window["set_avg"].update(visible=values[event])
                     self.currently_set_values["average"] = values[event]
+                    self.window["averaging"].update(values[event])  # didn't throw error, actually change checkbox
                 elif event == "SINGLE":
                     channels = self.currently_set_values["channels"]
                     if channels:
