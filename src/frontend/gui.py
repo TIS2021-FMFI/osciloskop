@@ -163,6 +163,7 @@ class GUI:
                 elif event == self.word_disconnect:
                     self.cmd.disconnect_and_exit_cmd_mode()
                     self.button_activation(True)
+                    self.currently_set_values[self.word_address] = 0
                 elif event == "New config":
                     config_content, config_name = self.open_config_creation()
                     self.create_config_file(config_content, config_name)
@@ -180,7 +181,7 @@ class GUI:
                     self.currently_set_values["points"] = values["curr_points"]
                 elif event == "set_avg":
                     self.cmd.set_average_no(values["curr_avg"])
-                    self.currently_set_values["average"] = values["curr_avg"]
+                    self.currently_set_values["average_pts"] = values["curr_avg"]
                 elif event in ("ch1", "ch2", "ch3", "ch4"):
                     if values[event]:
                         self.currently_set_values["channels"].append(event)
@@ -192,6 +193,7 @@ class GUI:
                         self.cmd.turn_on_average()
                     else:
                         self.cmd.turn_off_average()
+                        self.currently_set_values["average_pts"] = 0
                     self.window["curr_avg"].update(visible=values[event])
                     self.window["set_avg"].update(visible=values[event])
                     self.currently_set_values["average"] = values[event]
