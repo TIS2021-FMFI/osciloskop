@@ -21,7 +21,7 @@ class Commands:
         min_address = 1
         max_address = 31
         if address not in [str(i) for i in range(min_address, max_address+1)]:
-            raise CommandError(f"{address} is not a valid address")
+            raise CommandError(f"'{address}' is not a valid address")
         if not self.adapter.connect(int(address)):
             raise CommandError("Could not connect")
 
