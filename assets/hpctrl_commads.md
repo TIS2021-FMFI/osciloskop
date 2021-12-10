@@ -1,4 +1,4 @@
-- po dokonceni kazdej sekvencie prikazov by mal program skocit von z cmd modu a pristroj ma byt stale v run mode (asi)
+- po dokonceni kazdej sekvencie prikazov by mal program skoncit v cmd mode a pristroj ma byt stale v run mode (asi)
 
 - at the beginning
 ```
@@ -32,7 +32,6 @@ q :waveform:preamble?
 
 - single run (output on stdout)
 ```
-cmd
 s single
 { for channel in channels }
 s :waveform:source channel{int}
@@ -40,13 +39,12 @@ s :waveform:data?
 16
 { end loop }
 s run
-.
 ```
 
 - continuous run (output in a file)
 ```
+.
 file {str}
 cmd
 ...
-.
 ```

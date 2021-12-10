@@ -63,7 +63,7 @@ class GUI:
             [sg.Frame("Info", [[col_info]])]
         ]
 
-    def open_config_creation(self) -> tuple[str]:
+    def open_config_creation(self) -> tuple[str, str]:
         # opens a new window for creating a new configuration file
         layout = [
             [sg.Multiline(key="cfg_input")],
@@ -87,9 +87,9 @@ class GUI:
             elif event == sg.WIN_CLOSED:
                 break
         window.close()
-        return config_content, config_name
+        return (config_content, config_name)
 
-    def _create_config_layout(self, file_name) -> tuple[list]:
+    def _create_config_layout(self, file_name) -> tuple[list, list]:
         rows = []   # layout rows
         buttons = []    # [command_text, input_key]
         with open(file_name) as f:
@@ -110,7 +110,7 @@ class GUI:
                         sg.Button("set", key=len(rows))
                     ])
         rows.append([sg.Button("Set all"), sg.Button("Close")])
-        return rows, buttons
+        return (rows, buttons)
 
     def _run_config_command(self, row_index, values, buttons):
         command = buttons[row_index][0]
@@ -153,7 +153,7 @@ class GUI:
             try:
                 if event == self.word_connect:
                     self.cmd.connect_and_enter_cmd_mode(values[self.word_address])
-                    self.currently_set_values[event] = values[self.word_address]
+                    self.currently_set_values[self.word_address] = values[self.word_address]
                     self.button_activation(False)
                 elif event == self.word_disconnect:
                     self.cmd.disconnect_and_exit_cmd_mode()
