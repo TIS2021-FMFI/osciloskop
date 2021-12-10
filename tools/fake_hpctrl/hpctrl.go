@@ -18,6 +18,7 @@ const (
 	cmdExit       = "exit"
 	cmdIdn        = "q *IDN?"
 	responseIdn   = "HEWLETT-PACKARD,83480A,US35240110,07.12"
+	cmdSendData   = "16"
 )
 
 func main() {
@@ -49,6 +50,8 @@ loop:
 			break loop
 		case cmdIdn:
 			fmt.Println(responseIdn)
+		case cmdSendData:
+			fmt.Println("some\ndata\nhere")
 		}
 	}
 

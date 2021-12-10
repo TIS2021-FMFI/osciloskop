@@ -26,10 +26,12 @@ class GUI:
         col_gpib = sg.Col([
             [sg.Text("Address number:"), sg.InputText(size=(12, 1), key=self.word_address)],
             [sg.Button(self.word_connect, size=button_size), sg.Button(self.word_disconnect, size=button_size)],
-            [sg.Button("Terminal", size=button_size)]
+            [sg.Button("Terminal", size=button_size)],
+            [sg.Button("is_responsive", size=button_size)]
         ], size=(self.WIDTH/2, 150), pad=(0,0))
         
         col_osci = sg.Col([
+            [sg.Checkbox("turn on average",  enable_events=True, key="turn_on_average")],
             [sg.Text("Average No.")],
             [sg.InputText("100", size=button_size, key="curr_avg"), sg.Button("SET", size=button_size, key="set_average")],
             [sg.Text("Points")],
@@ -40,7 +42,7 @@ class GUI:
         ], size=(self.WIDTH/2, 220), pad=(0,0))
 
         col_run = sg.Col([
-            [sg.Text("Format type:"), sg.Combo(values=["RAW", "average"], default_value="RAW")],
+            # [sg.Text("Format type:"), sg.Combo(values=["RAW", "average"], default_value="RAW")],
             [sg.Text("File name")],
             [sg.InputText("ch1_meranie", size=(25, 1), key="curr_path"), sg.SaveAs("Browse"), sg.Button("SET", key="set_path")],
             [sg.Button("SAVE", size=button_size), sg.Checkbox("AutoSave")],
@@ -174,10 +176,22 @@ class GUI:
                     self.cmd.set_points(values["curr_points"])
                     self.currently_set_values["points"] = values["curr_points"]
                 elif event == "set_average":
-                    # self.cmd.set_average(values["curr_avg"])   # todo v Commands vytvorit funkciu
+                    self.cmd.set_average_no(values["curr_avg"])
                     self.currently_set_values["average"] = values["curr_avg"]
                 elif event in ("ch1", "ch2", "ch3", "ch4"):
                     self.currently_set_values[event] = values[event]
+                elif event == "turn_on_average":
+                    if  values[event] == True:
+                        self.cmd.turn_on_average()
+                    else:
+                        self.cmd.turn_off_average()
+                    self.currently_set_values["average"] = values[event]
+                elif event == "SINGLE":
+                    chans = self.get_enabled_channels()
+                    if chans:
+                        self.cmd.single(chans)
+                elif event == "is_responsive":
+                    sg.popup(self.cmd.osci_is_responsive())
                 elif event in (sg.WIN_CLOSED, self.word_quit_gui):
                     break
                 self.update_info()
@@ -186,3 +200,14 @@ class GUI:
         
         self.cmd.exit()
         self.window.close()
+
+    
+    def get_enabled_channels(self):
+        res = []
+        for i in ("ch1", "ch2", "ch3", "ch4"):
+            try:
+                if self.currently_set_values[i]:
+                    res.append(i)
+            except KeyError:
+                pass
+        return res

@@ -47,7 +47,7 @@ class Adapter:
             else:
                 time.sleep(0.001)
 
-    def get_output(self, timeout: float, lines: int) -> str:
+    def get_output(self, timeout: float) -> str:
         """
         returns output from hpctrl as str. Returns empty string if there was no output.
         Timeout arg is in seconds and lines arg is number of lines to be returned.
@@ -55,14 +55,9 @@ class Adapter:
         """
         out_str = ""
         get_started = time.time()
-        line_counter = 0
 
-        while (time.time() < get_started + timeout) and line_counter < lines:
-            if self.out_queue.empty():
-                time.sleep(0.001)
-            else:
-                out_str += self.out_queue.get_nowait()
-                line_counter += 1
+        while (time.time() < get_started + timeout) and not self.out_queue.empty():
+            out_str += self.out_queue.get_nowait()
 
         self.clear_input_queue()
 
@@ -136,7 +131,7 @@ class Adapter:
         """
         returns True if oscilloscope responds "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
         """
-        return self.send_and_get_output([self.cmd_idn], 0.1, 1) == self.cmd_idn_response
+        return self.send_and_get_output([self.cmd_idn], 0.2) == self.cmd_idn_response
 
     def send(self, messages: list[str]) -> bool:
         """
@@ -155,14 +150,14 @@ class Adapter:
                 return False
         return True
 
-    def send_and_get_output(self, messages: list[str], timeout: float, lines: int) -> str:
+    def send_and_get_output(self, messages: list[str], timeout: float = float('inf')) -> str:
         """
         calls self.send(messages) and then self.get_output(timeout, lines).
         Returns empty string if there was no output or if someting is wrong with hpctrl.
         """
         if not self.send(messages):
             return ""
-        return self.get_output(timeout, lines)
+        return self.get_output(timeout)
 
     def connect(self, address: int) -> bool:
         """
