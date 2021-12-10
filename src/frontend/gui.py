@@ -15,7 +15,7 @@ class GUI:
 
     def __init__(self):
         sg.theme("DarkGrey9")
-        self.currently_set_values = {}
+        self.currently_set_values = {"channels": []}
         self.cmd = Commands()
         self.layout = self._create_layout()
         self.window = sg.Window("Oscilloscope control", self.layout, size=(self.WIDTH, self.HEIGHT), element_justification="c")
@@ -142,11 +142,14 @@ class GUI:
         self.window["cfg_file"].update(values=[f for f in listdir("config") if f.endswith(".txt")])
 
     def update_info(self):
-        info_content = [f"{key} = {value}" for key, value in self.currently_set_values.items()]
+        info_content = [f"{key} = {value}" for key, value in self.currently_set_values.items() if value]
         self.window["info"].update("\n".join(info_content))
     
     def button_activation(self, disable: bool):
         self.window["RUN"].update(disabled=disable)
+    
+    def get_enabled_channels(self):
+        return self.currently_set_values["channels"]
 
     def run(self):
         # Event loop
@@ -179,17 +182,20 @@ class GUI:
                     self.cmd.set_average_no(values["curr_avg"])
                     self.currently_set_values["average"] = values["curr_avg"]
                 elif event in ("ch1", "ch2", "ch3", "ch4"):
-                    self.currently_set_values[event] = values[event]
+                    if values[event]:
+                        self.currently_set_values["channels"].append(event)
+                    else:
+                        self.currently_set_values["channels"].remove(event)
                 elif event == "turn_on_average":
-                    if  values[event] == True:
+                    if values[event] == True:
                         self.cmd.turn_on_average()
                     else:
                         self.cmd.turn_off_average()
                     self.currently_set_values["average"] = values[event]
                 elif event == "SINGLE":
-                    chans = self.get_enabled_channels()
-                    if chans:
-                        self.cmd.single(chans)
+                    channels = self.get_enabled_channels()
+                    if channels:
+                        self.cmd.single(channels)
                 elif event == "is_responsive":
                     sg.popup(self.cmd.osci_is_responsive())
                 elif event in (sg.WIN_CLOSED, self.word_quit_gui):
@@ -200,14 +206,3 @@ class GUI:
         
         self.cmd.exit()
         self.window.close()
-
-    
-    def get_enabled_channels(self):
-        res = []
-        for i in ("ch1", "ch2", "ch3", "ch4"):
-            try:
-                if self.currently_set_values[i]:
-                    res.append(i)
-            except KeyError:
-                pass
-        return res
