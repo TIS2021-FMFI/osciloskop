@@ -147,9 +147,6 @@ class GUI:
     
     def button_activation(self, disable: bool):
         self.window["RUN"].update(disabled=disable)
-    
-    def get_enabled_channels(self):
-        return self.currently_set_values["channels"]
 
     def run(self):
         # Event loop
@@ -169,7 +166,7 @@ class GUI:
                 elif event == "Load config":
                     file_name = values["cfg_file"]
                     if file_name:
-                        self.open_config_window(os.path.join("config", file_name))
+                        self.open_config_window(os.path.join("assets\\config", file_name))
                     else:
                         sg.popup("File not chosen")
                 elif event == "set_path":
@@ -193,9 +190,11 @@ class GUI:
                         self.cmd.turn_off_average()
                     self.currently_set_values["average"] = values[event]
                 elif event == "SINGLE":
-                    channels = self.get_enabled_channels()
+                    channels = self.currently_set_values["channels"]
                     if channels:
                         self.cmd.single(channels)
+                    else:
+                        sg.popup("No channels were selected")
                 elif event == "is_responsive":
                     sg.popup(self.cmd.osci_is_responsive())
                 elif event in (sg.WIN_CLOSED, self.word_quit_gui):
