@@ -97,7 +97,7 @@ class Commands:
         print("finished 5 second sleep")
 
     def osci_is_responsive(self):
-        return self.adapter.osci_is_responsive()
+        return self.adapter.is_osci_responsive()
 
     def save_measurement(self, file_name, msg):
         with open(os.path.join("assets", "measurements", file_name), "w") as f:

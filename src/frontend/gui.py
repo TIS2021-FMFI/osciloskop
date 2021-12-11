@@ -1,5 +1,6 @@
 import os
 import PySimpleGUI as sg
+from backend.adapter import AdapterError
 from backend.commands import CommandError, Commands
 from threading import Thread
 from os import listdir
@@ -209,7 +210,7 @@ class GUI:
                 elif event in (sg.WIN_CLOSED, self.word_quit_gui):
                     break
                 self.update_info()
-            except CommandError as e:
+            except (CommandError, AdapterError) as e:
                 sg.popup(e)
         
         self.cmd.exit()

@@ -3,7 +3,11 @@ import subprocess
 import threading
 import queue
 import platform
+import os
 
+
+class AdapterError(Exception):
+    pass
 
 class Adapter:
     address: int
@@ -33,6 +37,9 @@ class Adapter:
         if self.testing:
             self.hpctrl_executable = self.hpctrl_executable.replace("hpctrl", "fake_hpctrl", 1)
 
+        if not os.path.isfile(self.hpctrl_executable):
+            raise AdapterError("hpctrl executable not found")
+
     def enqueue_output(self):
         """
         reads what hpctrl is saying on stdout into self.out_queue line by line
@@ -49,8 +56,7 @@ class Adapter:
 
     def get_output(self, timeout):
         """
-        returns output from hpctrl as str. Returns empty string if there was no output.
-        Timeout arg is in seconds and lines arg is number of lines to be returned.
+        returns output from hpctrl as str. Timeout arg is in seconds.
         It also calls self.clear_input_queue() before it finishes
         """
         out_str = ""
@@ -60,8 +66,11 @@ class Adapter:
             out_str += self.out_queue.get_nowait()
 
         self.clear_input_queue()
-
-        return out_str.strip()
+        
+        res = out_str.strip()
+        if not res:
+            raise AdapterError("got empty string as response from hpctrl")
+        return res
 
     def clear_input_queue(self):
         """
@@ -72,23 +81,18 @@ class Adapter:
 
     def start_hpctrl(self):
         """
-        starts hpctrl and returns True if it was successful.
-        Return False if file was not found
+        starts hpctrl with the -i flag
         """
-        if self.hpctrl_is_running():
-            return True
+        if self.is_hpctrl_running():
+            return
 
-        try:
-            self.process = subprocess.Popen(
-                [self.hpctrl_executable, "-i"],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-            )
-        except FileNotFoundError:
-            return False
-            # maybe we'll have to quit() here
+        self.process = subprocess.Popen(
+            [self.hpctrl_executable, "-i"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
 
         self.out_queue = queue.Queue()
 
@@ -96,8 +100,6 @@ class Adapter:
         self.out_thread.daemon = True
         self.out_thread.start()
         self.out_thread_killed = False
-
-        return True
 
     def kill_hpctrl(self):
         """
@@ -123,11 +125,11 @@ class Adapter:
         self.kill_hpctrl()
         self.start_hpctrl()
 
-    def hpctrl_is_running(self):
+    def is_hpctrl_running(self):
         """returns True if hpctrl is running"""
         return all([self.process, self.out_thread, self.out_queue])
 
-    def osci_is_responsive(self):
+    def is_osci_responsive(self):
         """
         returns True if oscilloscope responds "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
         """
@@ -135,10 +137,10 @@ class Adapter:
 
     def send(self, messages):
         """
-        prints messages into self.process.stdin. Returns True if it was successful.
+        prints messages into self.process.stdin
         """
-        if not self.hpctrl_is_running():
-            return False
+        if not self.is_hpctrl_running():
+            raise AdapterError("hpctrl is not running")
         message_string = "\n".join(messages)
         try:
             print(message_string, file=self.process.stdin)
@@ -147,62 +149,47 @@ class Adapter:
             time.sleep(0.1)  # aby HPCTRL stihol spracovat prikaz, inak vypisuje !not ready, try again later (ping)
         except OSError:
             if message_string != self.cmd_exit:
-                return False
-        return True
+                raise AdapterError("could not send the command")
 
     def send_and_get_output(self, messages, timeout = float('inf')):
         """
-        calls self.send(messages) and then self.get_output(timeout, lines).
-        Returns empty string if there was no output or if someting is wrong with hpctrl.
+        calls self.send(messages) and then self.get_output(timeout, lines)
         """
-        if not self.send(messages):
-            return ""
-        return self.get_output(timeout)
+        self.send(messages)
+        self.get_output(timeout)
 
     def connect(self, address):
         """
-        connets with LOGON, OSCI, CONNECT {address} commands. Returns True if successful
+        connets with LOGON, OSCI, CONNECT {address} commands
         """
-        if not self.send([self.cmd_logon, self.cmd_osci, f"{self.cmd_connect} {address}"]):
-            return False
+        self.send([self.cmd_logon, self.cmd_osci, f"{self.cmd_connect} {address}"])
         self.address = address
         self.connected = True
-        return True
 
     def disconnect(self):
         """
-        disconnets with DISCONNECT command if possible. Returns True if successful
+        disconnets with DISCONNECT command if possible
         """
         if not self.connected:
-            return True
-        if self.send([self.cmd_disconnect]):
-            self.address = None
-            self.connected = False
-            return True
-        return False
+            return
+        self.send([self.cmd_disconnect])
+        self.address = None
+        self.connected = False
 
     def enter_cmd_mode(self):
         """
-        enters cmd mode with CMD command if possible. Returns True if successful
+        enters cmd mode with CMD command if possible
         """
-        if not self.connected:
-            return False
-        if self.in_cmd_mode:
-            return True
-        if self.send([self.cmd_enter_cmd]):
-            self.in_cmd_mode = True
-            return True
-        return False
+        if not self.connected or self.in_cmd_mode:
+            return
+        self.send([self.cmd_enter_cmd])
+        self.in_cmd_mode = True
 
     def exit_cmd_mode(self):
         """
-        exits cmd mode with . command if possible. Returns True if successful
+        exits cmd mode with . command if possible
         """
-        if not self.connected:
-            return False
-        if not self.in_cmd_mode:
-            return True
-        if self.send([self.cmd_leave_cmd]):
-            self.in_cmd_mode = False
-            return True
-        return False
+        if not self.connected or not self.in_cmd_mode:
+            return
+        self.send([self.cmd_leave_cmd])
+        self.in_cmd_mode = False
