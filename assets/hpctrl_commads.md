@@ -1,9 +1,11 @@
-- po dokonceni kazdej sekvencie prikazov by mal program skoncit v cmd mode a pristroj ma byt stale v run mode (asi)
+- po dokonceni kazdej sekvencie prikazov by mal program skoncit v cmd mode a pristroj ma byt stale v run mode
 
 - at the beginning
 ```
 osci
 connect {int}
+cmd
+s run
 ```
 
 - if average
@@ -25,11 +27,6 @@ s :channel{int}:display {on/off}
 { end loop }
 ```
 
-- getting preamble
-```
-q :waveform:preamble?
-```
-
 - single run (output on stdout)
 ```
 s single
@@ -37,6 +34,7 @@ s single
 s :waveform:source channel{int}
 s :waveform:data?
 16
+q :waveform:preamble?
 { end loop }
 s run
 ```
@@ -46,5 +44,7 @@ s run
 .
 file {str}
 cmd
-...
+23 # select channel 2 and 3
+*
+?
 ```
