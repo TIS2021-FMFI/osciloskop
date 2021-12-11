@@ -12,12 +12,12 @@ class Commands:
     def __new__(self):
         if self._instance is None:
             self._instance = super(Commands, self).__new__(self)
-            self.adapter = Adapter(testing=False)
+            self.adapter = Adapter(testing=True)
             self.adapter.start_hpctrl()
 
         return self._instance
 
-    def connect(self, address: str):
+    def connect(self, address):
         min_address = 1
         max_address = 31
         if address not in [str(i) for i in range(min_address, max_address+1)]:
@@ -29,7 +29,7 @@ class Commands:
         if not self.adapter.enter_cmd_mode():
             raise CommandError("Could not enter the CMD mode")
 
-    def connect_and_enter_cmd_mode(self, address: str):
+    def connect_and_enter_cmd_mode(self, address):
         self.connect(address)
         self.enter_cmd_mode()
 
@@ -45,22 +45,22 @@ class Commands:
         self.leave_cmd_mode()
         self.disconnect()
 
-    def send_custom(self, message: str):
+    def send_custom(self, message):
         if not self.adapter.send(message.split("\n")):
             raise CommandError("Something went wrong")
 
-    def set_path(self, path: str):
+    def set_path(self, path):
         if not self.adapter.send([f"FILE {path}"]):
             raise CommandError("Something went wrong")
 
-    def set_points(self, points: str):
+    def set_points(self, points):
         # TODO: points can be also auto (also range should be checked)
         if not points.isnumeric():
             raise CommandError(f"{points} is not a number")
         if not self.adapter.send([f"s: ACQUIRE:POINTS {points}"]):
             raise CommandError("Something went wrong")
 
-    def set_average_no(self, count: str):
+    def set_average_no(self, count):
         if not count.isnumeric():
             raise CommandError(f"{count} is not a number")
         if not self.adapter.send([f"s: ACQUIRE:count {count}"]):

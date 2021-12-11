@@ -25,7 +25,7 @@ class Adapter:
     cmd_idn: str = "q *IDN?"
     cmd_idn_response: str = "HEWLETT-PACKARD,83480A,US35240110,07.12"
 
-    def __init__(self, testing: bool) -> None:
+    def __init__(self, testing):
         self.testing = testing
         if platform.system() == "Windows":
             self.hpctrl_executable += ".exe"
@@ -33,7 +33,7 @@ class Adapter:
         if self.testing:
             self.hpctrl_executable = self.hpctrl_executable.replace("hpctrl", "fake_hpctrl", 1)
 
-    def enqueue_output(self) -> None:
+    def enqueue_output(self):
         """
         reads what hpctrl is saying on stdout into self.out_queue line by line
         """
@@ -47,7 +47,7 @@ class Adapter:
             else:
                 time.sleep(0.001)
 
-    def get_output(self, timeout: float) -> str:
+    def get_output(self, timeout):
         """
         returns output from hpctrl as str. Returns empty string if there was no output.
         Timeout arg is in seconds and lines arg is number of lines to be returned.
@@ -63,14 +63,14 @@ class Adapter:
 
         return out_str.strip()
 
-    def clear_input_queue(self) -> None:
+    def clear_input_queue(self):
         """
         clears self.out_queue
         """
         while not self.out_queue.empty():
             self.out_queue.get_nowait()
 
-    def start_hpctrl(self) -> bool:
+    def start_hpctrl(self):
         """
         starts hpctrl and returns True if it was successful.
         Return False if file was not found
@@ -99,7 +99,7 @@ class Adapter:
 
         return True
 
-    def kill_hpctrl(self) -> None:
+    def kill_hpctrl(self):
         """
         sends exit command to hpctrl or kills it if it's frozen
         """
@@ -116,24 +116,24 @@ class Adapter:
                 self.process = None
         self.out_queue = None
 
-    def restart_hpctrl(self) -> None:
+    def restart_hpctrl(self):
         """
         calls self.kill_hpctrl() and then self.start_hpctrl()
         """
         self.kill_hpctrl()
         self.start_hpctrl()
 
-    def hpctrl_is_running(self) -> bool:
+    def hpctrl_is_running(self):
         """returns True if hpctrl is running"""
         return all([self.process, self.out_thread, self.out_queue])
 
-    def osci_is_responsive(self) -> bool:
+    def osci_is_responsive(self):
         """
         returns True if oscilloscope responds "HEWLETT-PACKARD,83480A,US35240110,07.12" to "q *IDN?" command
         """
         return self.send_and_get_output([self.cmd_idn], 0.2) == self.cmd_idn_response
 
-    def send(self, messages: list[str]) -> bool:
+    def send(self, messages):
         """
         prints messages into self.process.stdin. Returns True if it was successful.
         """
@@ -150,7 +150,7 @@ class Adapter:
                 return False
         return True
 
-    def send_and_get_output(self, messages: list[str], timeout: float = float('inf')) -> str:
+    def send_and_get_output(self, messages, timeout = float('inf')):
         """
         calls self.send(messages) and then self.get_output(timeout, lines).
         Returns empty string if there was no output or if someting is wrong with hpctrl.
@@ -159,7 +159,7 @@ class Adapter:
             return ""
         return self.get_output(timeout)
 
-    def connect(self, address: int) -> bool:
+    def connect(self, address):
         """
         connets with LOGON, OSCI, CONNECT {address} commands. Returns True if successful
         """
@@ -169,7 +169,7 @@ class Adapter:
         self.connected = True
         return True
 
-    def disconnect(self) -> bool:
+    def disconnect(self):
         """
         disconnets with DISCONNECT command if possible. Returns True if successful
         """
@@ -181,7 +181,7 @@ class Adapter:
             return True
         return False
 
-    def enter_cmd_mode(self) -> bool:
+    def enter_cmd_mode(self):
         """
         enters cmd mode with CMD command if possible. Returns True if successful
         """
@@ -194,7 +194,7 @@ class Adapter:
             return True
         return False
 
-    def exit_cmd_mode(self) -> bool:
+    def exit_cmd_mode(self):
         """
         exits cmd mode with . command if possible. Returns True if successful
         """

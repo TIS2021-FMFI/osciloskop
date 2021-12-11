@@ -20,7 +20,7 @@ class GUI:
         self.layout = self._create_layout()
         self.window = sg.Window("Oscilloscope control", self.layout, size=(self.WIDTH, self.HEIGHT), element_justification="c")
 
-    def _create_layout(self) -> list: 
+    def _create_layout(self): 
         button_size = (10, 1)
         # Elements inside the window
         col_gpib = sg.Col([
@@ -68,7 +68,7 @@ class GUI:
             [sg.Frame("Info", [[col_info]])]
         ]
 
-    def open_config_creation(self) -> tuple[str, str]:
+    def open_config_creation(self):
         # opens a new window for creating a new configuration file
         layout = [
             [sg.Multiline(key="cfg_input")],
@@ -94,7 +94,7 @@ class GUI:
         window.close()
         return (config_content, config_name)
 
-    def _create_config_layout(self, file_name) -> tuple[list, list]:
+    def _create_config_layout(self, file_name):
         rows = []   # layout rows
         buttons = []    # [command_text, input_key]
         with open(file_name) as f:
@@ -148,7 +148,7 @@ class GUI:
         info_content = [f"{key} = {value}" for key, value in self.currently_set_values.items() if value]
         self.window["info"].update("\n".join(info_content))
     
-    def button_activation(self, disable: bool):
+    def button_activation(self, disable):
         self.window["RUN"].update(disabled=disable)
 
     def run(self):
