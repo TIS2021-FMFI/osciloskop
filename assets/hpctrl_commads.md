@@ -6,6 +6,7 @@ osci
 connect {int}
 cmd
 s run
+s :waveform:format word
 ```
 
 - if average

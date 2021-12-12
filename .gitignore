@@ -6,3 +6,6 @@ _*/
 
 # Ignore log from fake hpctrl
 tools/fake_hpctrl/log
+
+# Ignore my personal TODO
+TODO

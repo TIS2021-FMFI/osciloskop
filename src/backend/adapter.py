@@ -156,7 +156,7 @@ class Adapter:
         calls self.send(messages) and then self.get_output(timeout, lines)
         """
         self.send(messages)
-        self.get_output(timeout)
+        return self.get_output(timeout)
 
     def connect(self, address):
         """
