@@ -104,7 +104,7 @@ class GUI:
 
     def open_config_creation(self):
         # opens a new window for creating a new configuration file
-        layout = [[sg.Multiline(key="cfg_input")], [sg.Button("Save"), sg.Button("Discard")], [sg.Text("Config name:"), sg.InputText(key="cfg_name")]]
+        layout = [[sg.Multiline(key="cfg_input", size=(50, 20))], [sg.Button("Save"), sg.Button("Discard")], [sg.Text("Config name:"), sg.InputText(key="cfg_name")]]
         window = sg.Window("Config", layout)
         config_content = ""
         config_name = ""
@@ -167,9 +167,9 @@ class GUI:
 
     def create_config_file(self, config_content, file_name):
         if config_content:
-            with open(os.path.join("config", f"{file_name}.txt"), "w") as f:
+            with open(os.path.join("assets", "config", f"{file_name}.txt"), "w") as f:
                 f.write(config_content)
-        self.window[self.config_file].update(values=[f for f in listdir("config") if f.endswith(".txt")])
+        self.window[self.config_file].update(values=[f for f in listdir(os.path.join("assets", "config")) if f.endswith(".txt")])
 
     def update_info(self):
         info_content = [f"{key} = {value}" for key, value in self.currently_set_values.items() if value]
