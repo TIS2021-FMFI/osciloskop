@@ -1,6 +1,6 @@
 import os
 import PySimpleGUI as sg
-from PySimpleGUI.PySimpleGUI import popup_yes_no
+from PySimpleGUI.PySimpleGUI import popup_cancel, popup_ok, popup_quick_message, popup_yes_no
 from backend.adapter import AdapterError
 from backend.command import (
     AvarageCmd,
@@ -239,9 +239,13 @@ class GUI:
                         SingleCmd(channels, values["curr_path"]).do()
                     else:
                         sg.popup("No channels were selected")
+
+                elif event == "RUN":
+                    if sg.popup(custom_text="stop", title="Running", keep_on_top=True) == "stop":
+                        ...
                 
                 elif event == self.factory_reset_osci:
-                    if popup_yes_no() == "Yes":
+                    if popup_yes_no(title="Reset?", keep_on_top=True) == "Yes":
                         FactoryResetCmd().do()
 
                 elif event == "Ping oscilloscope":
