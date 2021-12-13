@@ -185,4 +185,4 @@ class InitializeCmd(Command):
         ConnectCmd(self.address).check_and_do()
         EnterCmdModeCmd().do()
         SetFormatToWordCmd().do()
-        TurnOnRunCmd.do()
+        TurnOnRunCmd().do()

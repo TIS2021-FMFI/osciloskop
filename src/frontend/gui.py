@@ -146,7 +146,7 @@ class GUI:
 
     def _run_config_command(self, row_index, values, buttons):
         command = buttons[row_index][0]
-        value = values[buttons[row_index][1]] if len(buttons[row_index]) == 2 else "on"
+        value = values[buttons[row_index][1]] if len(buttons[row_index]) == 2 else True
         CustomCmd(f"{command} {value}").do()
         self.currently_set_values[command] = value
 
@@ -226,16 +226,11 @@ class GUI:
                         self.currently_set_values[self.channels].remove(event)
 
                 elif event == self.averaging:
-                    self.window[self.averaging].update(not values[event])  # if throws an error don't change checkbox
                     if values[event] == True:
                         AvarageCmd(True).do()
                     else:
                         AvarageCmd(False).do()
-                        self.currently_set_values[self.average_pts] = 0
-                    self.window[self.curr_average_no].update(visible=values[event])
-                    self.window[self.set_average_no].update(visible=values[event])
                     self.currently_set_values["average"] = values[event]
-                    self.window[self.averaging].update(values[event])  # didn't throw error, actually change checkbox
 
                 elif event == self.single:
                     channels = self.currently_set_values[self.channels]
