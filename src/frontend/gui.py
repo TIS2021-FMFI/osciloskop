@@ -1,24 +1,13 @@
 import os
-import PySimpleGUI as sg
-from PySimpleGUI.PySimpleGUI import popup_cancel, popup_ok, popup_quick_message, popup_yes_no
-from backend.adapter import AdapterError
-from backend.command import (
-    AvarageCmd,
-    AvarageNoCmd,
-    CheckIfResponsiveCmd,
-    CommandError,
-    ConnectCmd,
-    CustomCmd,
-    DisconnectCmd,
-    EnterCmdModeCmd,
-    ExitHpctrlCmd,
-    FactoryResetCmd,
-    LeaveCmdModeCmd,
-    PointsCmd,
-    SingleCmd,
-)
-from threading import Thread
 from os import listdir
+
+import PySimpleGUI as sg
+from backend.adapter import AdapterError
+from backend.command import (AvarageCmd, AvarageNoCmd, CheckIfResponsiveCmd,
+                             CommandError, CustomCmd, DisconnectCmd,
+                             ExitHpctrlCmd, FactoryResetCmd, InitializeCmd,
+                             LeaveCmdModeCmd, PointsCmd, SingleCmd)
+from PySimpleGUI.PySimpleGUI import popup_yes_no
 
 
 class GUI:
@@ -180,8 +169,7 @@ class GUI:
             event, values = self.window.read()
             try:
                 if event == self.word_connect:
-                    ConnectCmd(values[self.word_address]).check_and_do()
-                    EnterCmdModeCmd().do()
+                    InitializeCmd(values[self.word_address]).do()
                     self.currently_set_values[self.word_address] = values[self.word_address]
                     self.button_activation(False)
 
@@ -243,7 +231,7 @@ class GUI:
                 elif event == "RUN":
                     if sg.popup(custom_text="stop", title="Running", keep_on_top=True) == "stop":
                         ...
-                
+
                 elif event == self.factory_reset_osci:
                     if popup_yes_no(title="Reset?", keep_on_top=True) == "Yes":
                         FactoryResetCmd().do()

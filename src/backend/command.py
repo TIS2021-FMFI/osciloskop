@@ -161,6 +161,28 @@ class PreambleCmd(Command):
         """
         return self.adapter.send_and_get_output(["q :WAVEFORM:PREAMBLE?"])
 
+
 class FactoryResetCmd(Command):
     def do(self):
         return self.adapter.send(["s *RST"])
+
+
+class TurnOnRunCmd(Command):
+    def do(self):
+        return self.adapter.send(["s run"])
+
+
+class SetFormatToWordCmd(Command):
+    def do(self):
+        return self.adapter.send(["s :waveform:format word"])
+
+
+class InitializeCmd(Command):
+    def __init__(self, address):
+        self.address = address
+
+    def do(self):
+        ConnectCmd(self.address).check_and_do()
+        EnterCmdModeCmd().do()
+        SetFormatToWordCmd().do()
+        TurnOnRunCmd.do()
