@@ -35,41 +35,41 @@ class Preamble:
     
     def __str__(self):
         type = ""
-        if self.type == 1:
+        if self.type == "1":
             type = "raw"
-        elif self.type == 2:
+        elif self.type == "2":
             type = "average"
         else:
             type = "unknown"
-        return f"""Type:\t {type}\n
-        Points:\t {self.points}\n
-        Count:\t {self.count}\n
-        X increment:\t {self.x_increment}\n
-        X origin:\t {self.x_origin}\n
-        X reference:\t {self.x_reference}\n
-        Y increment:\t {self.y_increment}\n
-        Y origin:\t {self.y_origin}\n
-        Y reference:\t {self.y_reference}\n
-        Coupling:\t {self.coupling}\n
-        X display range:\t {self.x_display_range}\n
-        X display origin:\t {self.x_display_origin}\n
-        Y display range:\t {self.x_display_range}\n
-        Y display origin:\t {self.y_display_origin}\n
-        Date:\t {self.date}\n
-        Time:\t {self.time}\n
-        Frame:\t {self.frame_model}\n
-        Module:\t {self.plug_in_model}\n
-        Acq mode:\t {self.acquisition_mode}\n
-        Completion:\t {self.completion}\n
-        X units:\t {self.x_units}\n
-        Y units:\t {self.y_units}\n
-        Max bandwidth:\t {self.max_bandwidth_limit}\n
-        Min bandwidth:\t {self.min_bandwidth_limit}\n
-        """
+        return f"""Type:\t {type}
+Points:\t {self.points}
+Count:\t {self.count}
+X increment:\t {self.x_increment}
+X origin:\t {self.x_origin}
+X reference:\t {self.x_reference}
+Y increment:\t {self.y_increment}
+Y origin:\t {self.y_origin}
+Y reference:\t {self.y_reference}
+Coupling:\t {self.coupling}
+X display range:\t {self.x_display_range}
+X display origin:\t {self.x_display_origin}
+Y display range:\t {self.x_display_range}
+Y display origin:\t {self.y_display_origin}
+Date:\t {self.date}
+Time:\t {self.time}
+Frame:\t {self.frame_model}
+Module:\t {self.plug_in_model}
+Acq mode:\t {self.acquisition_mode}
+Completion:\t {self.completion}
+X units:\t {self.x_units}
+Y units:\t {self.y_units}
+Max bandwidth:\t {self.max_bandwidth_limit}
+Min bandwidth:\t {self.min_bandwidth_limit}
+"""
 
 class Measurement:
-    def __init__(self, preamble, data, channel):
-        self.preamble = preamble
+    def __init__(self, preamble, data, channel, reinterpret_trimmed_data=False):
+        self.preamble = Preamble(preamble)
         self.channel = channel
         self.data = data.split()
         self.correct_data()
@@ -77,20 +77,28 @@ class Measurement:
     def correct_data(self):
         _data = []
         for i in self.data:
-            _data.append(i * self.preamble.y_increment * self.preamble.y_origin)
+            _data.append(int(i) * float(self.preamble.y_increment) * float(self.preamble.y_origin))
         self.data = _data
+
+    def __str__(self):
+        data = ""
+        for i in self.data:
+            data += str(i) + "\n"
+        return f"{self.preamble.__str__()}\n{data}"
 
 class SingleMeasurement:
     def __init__(self, measurements):
         self.measurements = measurements
  
-    def save_to_disc(self, path, dir_name):
-        _path = os.path.join(path, dir_name)
-        os.makedirs(_path)
+    def save_to_disc(self, path):
+        try:
+            os.makedirs(path)
+        except FileExistsError:
+            pass
 
         for i in self.measurements:
-            with open(os.path.join(_path, f"{i.preamble.date}_{i.preamble.time}_{i.channel}"), "w") as f:
-                f.writelines(i.preamble + i.data)
+            with open(os.path.join(path, f"{i.preamble.date[1:-1]}_{i.preamble.time[1:-1]}_{i.channel}"), "w") as f:
+                f.writelines(i.__str__())
 
 class MultipleMeasurementsNoPreambles:
     def __init__(self):

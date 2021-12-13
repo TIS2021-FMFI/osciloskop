@@ -121,10 +121,9 @@ class AvarageCmd(Command):
 
 
 class SingleCmd(Command):
-    def __init__(self, channels, path, dir_name):
+    def __init__(self, channels, path):
         self.channels = channels
         self.path = path
-        self.dir_name = dir_name
 
     def do(self):
         """
@@ -137,9 +136,9 @@ class SingleCmd(Command):
             self.adapter.send([f"s :waveform:source channel{chan}"])
             self.adapter.send([f"s :waveform:data?"])
             data = self.adapter.send_and_get_output(["16"], 5)
-            preamble = PreambleCmd.do()
+            preamble = PreambleCmd().do()
             measurements.append(Measurement(preamble, data, chan))
-        SingleMeasurement(measurements).save_to_disc(self.path, self.dir_name)
+        SingleMeasurement(measurements).save_to_disc(self.path)
 
 
 class ExitHpctrlCmd(Command):
@@ -160,4 +159,4 @@ class PreambleCmd(Command):
         """
         do method returns preamble data
         """
-        return self.adapter.send_and_get_output("q :WAVEFORM:PREAMBLE?")
+        return self.adapter.send_and_get_output(["q :WAVEFORM:PREAMBLE?"])

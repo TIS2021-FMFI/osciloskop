@@ -168,7 +168,8 @@ class GUI:
         self.window["info"].update("\n".join(info_content))
 
     def button_activation(self, disable):
-        self.window["RUN"].update(disabled=disable)
+        for i in "SINGLE", "RUN":
+            self.window[i].update(disabled=disable)
 
     def run(self):
         # Event loop
@@ -232,9 +233,7 @@ class GUI:
                 elif event == "SINGLE":
                     channels = self.currently_set_values["channels"]
                     if channels:
-                        SingleCmd(channels,).do(
-                            values["curr_path"],
-                        )
+                        SingleCmd(channels, values["curr_path"]).do()
                     else:
                         sg.popup("No channels were selected")
 

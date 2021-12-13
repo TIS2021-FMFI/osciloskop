@@ -9,3 +9,6 @@ tools/fake_hpctrl/log
 
 # Ignore my personal TODO
 TODO
+
+# Ignore measurements
+assets/measurements
