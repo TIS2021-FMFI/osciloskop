@@ -160,3 +160,7 @@ class PreambleCmd(Command):
         do method returns preamble data
         """
         return self.adapter.send_and_get_output(["q :WAVEFORM:PREAMBLE?"])
+
+class FactoryResetCmd(Command):
+    def do(self):
+        return self.adapter.send(["s *RST"])

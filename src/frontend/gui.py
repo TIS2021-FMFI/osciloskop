@@ -1,5 +1,6 @@
 import os
 import PySimpleGUI as sg
+from PySimpleGUI.PySimpleGUI import popup_yes_no
 from backend.adapter import AdapterError
 from backend.command import (
     AvarageCmd,
@@ -11,6 +12,7 @@ from backend.command import (
     DisconnectCmd,
     EnterCmdModeCmd,
     ExitHpctrlCmd,
+    FactoryResetCmd,
     LeaveCmdModeCmd,
     PointsCmd,
     SingleCmd,
@@ -27,6 +29,7 @@ class GUI:
     word_disconnect = "Disconnect"
     word_quit_gui = "quit GUI"
     word_address = "address"
+    factory_reset_osci = "Factory reset Oscilloscope"
 
     def __init__(self):
         sg.theme("DarkGrey9")
@@ -62,7 +65,7 @@ class GUI:
                 [sg.Checkbox("Channel 3", enable_events=True, key="ch3"), sg.Checkbox("Channel 4", enable_events=True, key="ch4")],
                 [sg.Checkbox("Send preamble after each measurement (slower)", enable_events=True, key="preamble_on", default=False)],
                 [sg.Checkbox("Reinterpret trimmed data", enable_events=True, key="reinterpret_trimmed_data", default=False)],
-                [sg.Button("Reset Oscilloscope")],
+                [sg.Button(self.factory_reset_osci)],
             ],
             size=(self.WIDTH / 2, 280),
             pad=(0, 0),
@@ -236,6 +239,10 @@ class GUI:
                         SingleCmd(channels, values["curr_path"]).do()
                     else:
                         sg.popup("No channels were selected")
+                
+                elif event == self.factory_reset_osci:
+                    if popup_yes_no() == "Yes":
+                        FactoryResetCmd().do()
 
                 elif event == "Ping oscilloscope":
                     msg = "ping successful" if CheckIfResponsiveCmd().do() else "couldn't ping"
