@@ -1,7 +1,20 @@
 import os
 import PySimpleGUI as sg
 from backend.adapter import AdapterError
-from backend.command import AvarageCmd, AvarageNoCmd, CheckIfResponsiveCmd, CommandError, ConnectCmd, DisconnectCmd, EnterCmdModeCmd, ExitHpctrlCmd, FileCmd, LeaveCmdModeCmd, PointsCmd, SingleCmd
+from backend.command import (
+    AvarageCmd,
+    AvarageNoCmd,
+    CheckIfResponsiveCmd,
+    CommandError,
+    ConnectCmd,
+    CustomCmd,
+    DisconnectCmd,
+    EnterCmdModeCmd,
+    ExitHpctrlCmd,
+    LeaveCmdModeCmd,
+    PointsCmd,
+    SingleCmd,
+)
 from threading import Thread
 from os import listdir
 
@@ -31,7 +44,7 @@ class GUI:
                 [sg.Button("Terminal", size=button_size)],
                 [sg.Button("Ping oscilloscope")],
             ],
-            size=(self.WIDTH / 2, 150),
+            size=(self.WIDTH / 2, 140),
             pad=(0, 0),
         )
 
@@ -47,10 +60,11 @@ class GUI:
                 [sg.InputText("4096", size=button_size, key="curr_points"), sg.Button("SET", size=button_size, key="set_points")],
                 [sg.Checkbox("Channel 1", enable_events=True, key="ch1"), sg.Checkbox("Channel 2", enable_events=True, key="ch2")],
                 [sg.Checkbox("Channel 3", enable_events=True, key="ch3"), sg.Checkbox("Channel 4", enable_events=True, key="ch4")],
-                [sg.Checkbox("send preamble after each measurement (slower)", enable_events=True, key="preamble_on", default=False)],
+                [sg.Checkbox("Send preamble after each measurement (slower)", enable_events=True, key="preamble_on", default=False)],
+                [sg.Checkbox("Reinterpret trimmed data", enable_events=True, key="reinterpret_trimmed_data", default=False)],
                 [sg.Button("Reset Oscilloscope")],
             ],
-            size=(self.WIDTH / 2, 260),
+            size=(self.WIDTH / 2, 280),
             pad=(0, 0),
         )
 
@@ -69,11 +83,10 @@ class GUI:
             [[sg.Button("New config"), sg.Button("Load config"), sg.Combo(values=[f for f in listdir(os.path.join("assets", "config")) if f.endswith(".txt")], key="cfg_file")]],
             key="cfg_col",
             pad=(0, 0),
-            size=(self.WIDTH / 2, 260),
-            scrollable=True,
+            size=(self.WIDTH / 2, 100),
         )
 
-        col_info = sg.Col([[sg.Multiline(key="info", disabled=True, size=(self.WIDTH, 200))]], size=(self.WIDTH, 200))
+        col_info = sg.Col([[sg.Multiline(key="info", disabled=True, size=(self.WIDTH, 200))]], size=(self.WIDTH, 200), scrollable=True)
 
         return [
             [sg.Frame("GPIB Settings", [[col_gpib]]), sg.Frame("Run and save", [[col_run]])],
@@ -125,8 +138,8 @@ class GUI:
 
     def _run_config_command(self, row_index, values, buttons):
         command = buttons[row_index][0]
-        value = values[buttons[row_index][1]] if len(buttons[row_index]) == 2 else ""
-        self.cmd.send_custom(f"{command} {value}")
+        value = values[buttons[row_index][1]] if len(buttons[row_index]) == 2 else "on"
+        CustomCmd(f"{command} {value}").do()
         self.currently_set_values[command] = value
 
     def open_config_window(self, file_name):
@@ -233,7 +246,7 @@ class GUI:
                     break
 
                 self.update_info()
-                
+
             except (CommandError, AdapterError) as e:
                 sg.popup(e)
 
