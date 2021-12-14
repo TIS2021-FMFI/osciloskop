@@ -181,7 +181,6 @@ class GUI:
             [sg.InputText(key="cmd_input"), sg.Button("cmd_send", bind_return_key=True)],      
             [sg.Multiline(key="cmd_output", disabled=True, size=(450, 450), autoscroll=True)]
         ] 
-        outputs = []
         window = sg.Window("Terminal", layout, size=(500, 500))
         while True:
             event, values = window.read()
@@ -190,8 +189,7 @@ class GUI:
                 cmd_in = values["cmd_input"]
                 window["cmd_output"].update(value=f">>> {cmd_in}\n", append=True)
                 if cmd_in in ("clr", "cls", "clear"):
-                    outputs = []
-                    window["cmd_output"].update("\n".join(outputs))
+                    window["cmd_output"].update("")
                     continue
                 if len(cmd_in.split()) > 1 and cmd_in.split()[0] == "q":    # asking for output
                     try:
