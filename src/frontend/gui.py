@@ -3,7 +3,7 @@ import subprocess
 
 import PySimpleGUI as sg
 from backend.adapter import AdapterError
-from backend.command import AvarageCmd, AvarageNoCmd, CheckIfResponsiveCmd, CommandError, CustomCmd, DisconnectCmd, ExitHpctrlCmd, FactoryResetCmd, InitializeCmd, LeaveCmdModeCmd, PointsCmd, SingleCmd
+from backend.command import AvarageCmd, AvarageNoCmd, CheckIfResponsiveCmd, CommandError, CustomCmd, CustomCmdWithOutput, DisconnectCmd, ExitHpctrlCmd, FactoryResetCmd, InitializeCmd, LeaveCmdModeCmd, PointsCmd, SingleCmd
 from PySimpleGUI.PySimpleGUI import popup_yes_no
 
 
@@ -24,7 +24,6 @@ class GUI:
     curr_points = "curr_points"
     set_points = "set_points"
     curr_path = "curr_path"
-    set_path = "set_path"
     terminal = "Terminal"
     run = "RUN"
     single = "SINGLE"
@@ -78,7 +77,7 @@ class GUI:
             [
                 [sg.Text("Directory in which the measurements will be saved:")],
                 [sg.InputText(key=self.curr_path, default_text="assets/measurements", enable_events=True)],
-                [sg.InputText(key=self.set_path, do_not_clear=False, enable_events=True, visible=False), sg.FileSaveAs("Save to")],
+                [sg.FolderBrowse("Browse")],
                 [sg.Button(self.run, size=button_size, disabled=True), sg.Button(self.single, size=button_size, disabled=True)],
             ],
             size=(self.WIDTH / 2, 140),
@@ -176,19 +175,6 @@ class GUI:
     def button_activation(self, disable):
         for i in self.single, self.run:
             self.window[i].update(disabled=disable)
-            
-    def run_command(self, message, timeout=None):
-        # todo it freezes with the -i flag
-        prefix = "tools\\fake_hpctrl\\hpctrl.exe "
-        process = subprocess.Popen(prefix + message, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        output = []
-        err = "replace" if os.sys.version_info < (3, 5) else "backslashreplace"
-        for line in process.stdout:
-            line = line.decode(errors=err).rstrip()
-            output.append(line)
-        return_value = process.wait(timeout)
-
-        return return_value, "\n".join(output)
     
     def open_terminal_window(self):
         layout = [      
@@ -206,10 +192,15 @@ class GUI:
                     outputs = []
                     window["cmd_output"].update("\n".join(outputs))
                     continue
-                return_value, output = self.run_command(cmd_in)
-                outputs.insert(0, output)
-                if return_value == 0:
-                    sg.popup("oopsie woopsie")
+                if len(cmd_in.split()) > 1 and cmd_in.split()[0] == "q":    # asking for output
+                    try:
+                        output = CustomCmdWithOutput(cmd_in).do()
+                    except AdapterError as e:
+                        sg.popup(e)
+                        continue
+                    outputs.insert(0, output)
+                else:
+                    CustomCmd(cmd_in).do()
                 window["cmd_output"].update("\n".join(outputs))
             elif event in (sg.WIN_CLOSED, "Close"):
                 break
@@ -246,11 +237,6 @@ class GUI:
                     else:
                         sg.popup("File not chosen")
 
-                elif event == self.set_path:
-                    filename = values[self.set_path]
-                    if filename:
-                        self.window[self.curr_path].update(value=filename)
-
                 elif event == self.set_points:
                     PointsCmd(values[self.curr_points]).check_and_do()
                     self.currently_set_values["points"] = values[self.curr_points]
@@ -274,6 +260,9 @@ class GUI:
 
                 elif event == self.single:
                     channels = self.currently_set_values[self.channels]
+                    if not os.path.isdir(values[self.curr_path]):
+                        sg.popup("Path does not exist")
+                        continue
                     if channels:
                         SingleCmd(channels, values[self.curr_path]).do()
                     else:
