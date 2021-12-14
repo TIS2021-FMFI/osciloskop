@@ -179,7 +179,7 @@ class GUI:
     def open_terminal_window(self):
         layout = [      
             [sg.InputText(key="cmd_input"), sg.Button("cmd_send", bind_return_key=True)],      
-            [sg.Multiline(key="cmd_output", disabled=True, size=(450, 450))]
+            [sg.Multiline(key="cmd_output", disabled=True, size=(450, 450), autoscroll=True)]
         ] 
         outputs = []
         window = sg.Window("Terminal", layout, size=(500, 500))
@@ -188,6 +188,7 @@ class GUI:
             if event == "cmd_send":
                 window["cmd_input"].update("")
                 cmd_in = values["cmd_input"]
+                window["cmd_output"].update(value=f">>> {cmd_in}\n", append=True)
                 if cmd_in in ("clr", "cls", "clear"):
                     outputs = []
                     window["cmd_output"].update("\n".join(outputs))
@@ -198,10 +199,9 @@ class GUI:
                     except AdapterError as e:
                         sg.popup(e)
                         continue
-                    outputs.insert(0, output)
+                    window["cmd_output"].update(value=output+"\n", append=True)
                 else:
                     CustomCmd(cmd_in).do()
-                window["cmd_output"].update("\n".join(outputs))
             elif event in (sg.WIN_CLOSED, "Close"):
                 break
         window.close()
