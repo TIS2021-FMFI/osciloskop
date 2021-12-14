@@ -60,9 +60,19 @@ class CustomCmd(Command):
 
     def do(self):
         """
-        sends one command
+        sends a command
         """
-        self.adapter.send([self.cmd])
+        return self.adapter.send([self.cmd])
+
+class CustomCmdWithOutput(Command):
+    def __init__(self, cmd):
+        self.cmd = cmd
+
+    def do(self):
+        """
+        sends a command and returns an output
+        """
+        return self.adapter.send_and_get_output([self.cmd])
 
 
 class FileCmd(Command):
