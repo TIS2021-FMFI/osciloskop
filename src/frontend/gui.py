@@ -1,5 +1,5 @@
 import os
-from os import listdir
+import subprocess
 
 import PySimpleGUI as sg
 from backend.adapter import AdapterError
@@ -25,13 +25,11 @@ class GUI:
     set_points = "set_points"
     curr_path = "curr_path"
     set_path = "set_path"
+    terminal = "Terminal"
     run = "RUN"
     single = "SINGLE"
     average_pts = "average_pts"
-    ch1 = "ch1"
-    ch2 = "ch2"
-    ch3 = "ch3"
-    ch4 = "ch4"
+    ch1, ch2, ch3, ch4 = "ch1", "ch2", "ch3", "ch4"
     new_config = "New config"
     load_config = "Load config"
     config_file = "cfg_file"
@@ -49,7 +47,7 @@ class GUI:
             [
                 [sg.Text("Address number:"), sg.InputText(size=(12, 1), key=self.address)],
                 [sg.Button(self.connect, size=button_size), sg.Button(self.disconnect, size=button_size)],
-                [sg.Button("Terminal", size=button_size)],
+                [sg.Button(self.terminal, size=button_size)],
                 [sg.Button(self.ping_osci)],
             ],
             size=(self.WIDTH / 2, 140),
@@ -88,7 +86,7 @@ class GUI:
         )
 
         col_cfg = sg.Col(
-            [[sg.Button(self.new_config), sg.Button(self.load_config), sg.Combo(values=[f for f in listdir(os.path.join("assets", "config")) if f.endswith(".txt")], key=self.config_file)]],
+            [[sg.Button(self.new_config), sg.Button(self.load_config), sg.Combo(values=[f for f in os.listdir(os.path.join("assets", "config")) if f.endswith(".txt")], key=self.config_file)]],
             key="cfg_col",
             pad=(0, 0),
             size=(self.WIDTH / 2, 100),
@@ -169,7 +167,7 @@ class GUI:
         if config_content:
             with open(os.path.join("assets", "config", f"{file_name}.txt"), "w") as f:
                 f.write(config_content)
-        self.window[self.config_file].update(values=[f for f in listdir(os.path.join("assets", "config")) if f.endswith(".txt")])
+        self.window[self.config_file].update(values=[f for f in os.listdir(os.path.join("assets", "config")) if f.endswith(".txt")])
 
     def update_info(self):
         info_content = [f"{key} = {value}" for key, value in self.currently_set_values.items() if value]
@@ -178,6 +176,44 @@ class GUI:
     def button_activation(self, disable):
         for i in self.single, self.run:
             self.window[i].update(disabled=disable)
+            
+    def run_command(self, message, timeout=None):
+        # todo it freezes with the -i flag
+        prefix = "tools\\fake_hpctrl\\hpctrl.exe "
+        process = subprocess.Popen(prefix + message, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output = []
+        err = "replace" if os.sys.version_info < (3, 5) else "backslashreplace"
+        for line in process.stdout:
+            line = line.decode(errors=err).rstrip()
+            output.append(line)
+        return_value = process.wait(timeout)
+
+        return return_value, "\n".join(output)
+    
+    def open_terminal_window(self):
+        layout = [      
+            [sg.InputText(key="cmd_input"), sg.Button("cmd_send", bind_return_key=True)],      
+            [sg.Multiline(key="cmd_output", disabled=True, size=(450, 450))]
+        ] 
+        outputs = []
+        window = sg.Window("Terminal", layout, size=(500, 500))
+        while True:
+            event, values = window.read()
+            if event == "cmd_send":
+                window["cmd_input"].update("")
+                cmd_in = values["cmd_input"]
+                if cmd_in in ("clr", "cls", "clear"):
+                    outputs = []
+                    window["cmd_output"].update("\n".join(outputs))
+                    continue
+                return_value, output = self.run_command(cmd_in)
+                outputs.insert(0, output)
+                if return_value == 0:
+                    sg.popup("oopsie woopsie")
+                window["cmd_output"].update("\n".join(outputs))
+            elif event in (sg.WIN_CLOSED, "Close"):
+                break
+        window.close()
 
     def main_loop(self):
         # Event loop
@@ -201,8 +237,12 @@ class GUI:
 
                 elif event == self.load_config:
                     file_name = values[self.config_file]
+                    full_path = os.path.join("assets", "config", file_name)
+                    if not os.path.isfile(full_path):
+                        sg.popup("File does not exist")
+                        continue
                     if file_name:
-                        self.open_config_window(os.path.join("assets", "config", file_name))
+                        self.open_config_window(full_path)
                     else:
                         sg.popup("File not chosen")
 
@@ -250,6 +290,9 @@ class GUI:
                 elif event == self.ping_osci:
                     msg = "ping successful" if CheckIfResponsiveCmd().do() else "couldn't ping"
                     sg.popup(msg)
+                    
+                elif event == self.terminal:
+                    self.open_terminal_window()
 
                 elif event in (sg.WIN_CLOSED, self.quit_gui):
                     break
