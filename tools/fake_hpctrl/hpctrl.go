@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -24,6 +26,8 @@ const (
 	responsePreamble      = "2,2,2000,50,5.000000E-12,2.2000000000E-08,0,1.32375E-06,1.33434E-03,0,2,1.00000E-08,2.2000000000E-08,8.00000E-02,0.0E+000,\"10 DEC 2021\",\"14:16:16:16\",\"83480A:US35240110\",\"83485A:US34430174\",2,100,2,1,2.00000E+10,0E+000"
 	cmdFile               = "file"
 	cmdStopContinuousRead = "?"
+	cmdPreambleOn         = "pon"
+	cmdPreambleOff        = "poff"
 )
 
 func main() {
@@ -35,19 +39,21 @@ func main() {
 	}
 
 	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, filePerm)
-	ExitIfErr(err)
+	exitIfErr(err)
 	defer logFile.Close()
 
-	var measurementFile *os.File
+	var measurementFilePath string
 
 	writeToFile(logFile, []byte(fmt.Sprintf("started at %v\n", time.Now())))
 
 	reader := bufio.NewReader(os.Stdin)
 
+	isPreamble := true
+
 loop:
 	for {
 		text, err := reader.ReadBytes(endOfLineChar)
-		ExitIfErr(err)
+		exitIfErr(err)
 		writeToFile(logFile, text)
 
 		textString := strings.TrimSpace(strings.ToLower(string(text)))
@@ -61,18 +67,25 @@ loop:
 			fmt.Println(responseData)
 		case cmdPreamble:
 			fmt.Println(responsePreamble)
+		case cmdPreambleOn:
+			isPreamble = true
+		case cmdPreambleOff:
+			isPreamble = false
 		case cmdStopContinuousRead:
-			if measurementFile == nil {
-				log.Fatalln("measurementFile is nil")
+			if measurementFilePath == "" {
+				log.Fatalln("measurementFile is empty")
 			}
-			writeToFile(measurementFile, []byte("some\nbig\ndata"))
+			var fileWithData string
+			if isPreamble {
+				fileWithData = "pon.txt"
+			} else {
+				fileWithData = "poff.txt"
+			}
+			copyFile(measurementFilePath, filepath.Join("tools", "fake_hpctrl", fileWithData))
 		}
 
 		if strings.HasPrefix(textString, cmdFile) {
-			path := strings.TrimSpace(strings.TrimPrefix(textString, cmdFile))
-			measurementFile, err = os.Create(path)
-			ExitIfErr(err)
-			defer measurementFile.Close()
+			measurementFilePath = strings.TrimSpace(strings.TrimPrefix(textString, cmdFile))
 		}
 
 	}
@@ -82,12 +95,25 @@ loop:
 
 func writeToFile(f *os.File, msg []byte) {
 	_, err := f.Write(msg)
-	ExitIfErr(err)
+	exitIfErr(err)
 	f.Sync()
 }
 
-func ExitIfErr(err error) {
+func exitIfErr(err error) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+}
+
+func copyFile(destination, source string) {
+	src, err := os.Open(source)
+	exitIfErr(err)
+	defer src.Close()
+
+	dst, err := os.Create(destination)
+	exitIfErr(err)
+	defer dst.Close()
+
+	_, err = io.Copy(dst, src)
+	exitIfErr(err)
 }
