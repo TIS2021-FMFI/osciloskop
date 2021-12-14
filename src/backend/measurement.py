@@ -1,13 +1,13 @@
 import os
 
-class Preamble:
-    def __init__(self, raw_data):
-        self.raw_data = raw_data
-        self.parse()
 
-    def parse(self):
-        _data = self.raw_data.split(",")
-        # format
+class Preamble:
+    def __init__(self, data):
+        self.parse(data)
+
+    def parse(self, data):
+        _data = data.split(",")
+        # _data[1] is format
         self.type = _data[1]
         self.points = _data[2]
         self.count = _data[3]
@@ -32,7 +32,12 @@ class Preamble:
         self.y_units = _data[22]
         self.max_bandwidth_limit = _data[23]
         self.min_bandwidth_limit = _data[24]
-    
+        self.milliseconds = ""
+        try:
+            self.milliseconds = _data[25]
+        except IndexError:
+            pass
+
     def __str__(self):
         type = ""
         if self.type == "1":
@@ -41,7 +46,7 @@ class Preamble:
             type = "average"
         else:
             type = "unknown"
-        return f"""Type:\t {type}
+        res = f"""Type:\t {type}
 Points:\t {self.points}
 Count:\t {self.count}
 X increment:\t {self.x_increment}
@@ -64,21 +69,23 @@ Completion:\t {self.completion}
 X units:\t {self.x_units}
 Y units:\t {self.y_units}
 Max bandwidth:\t {self.max_bandwidth_limit}
-Min bandwidth:\t {self.min_bandwidth_limit}
-"""
+Min bandwidth:\t {self.min_bandwidth_limit}"""
+        if self.milliseconds:
+            res += f"Number of milliseconds from first measurement:\t {self.milliseconds}\n"
+        return res
+
 
 class Measurement:
     def __init__(self, preamble, data, channel, reinterpret_trimmed_data=False):
         self.preamble = Preamble(preamble)
         self.channel = channel
-        self.data = data.split()
-        self.correct_data()
+        self.data = self.correct_data(data)
 
-    def correct_data(self):
+    def correct_data(self, data):
         _data = []
-        for i in self.data:
+        for i in data.split():
             _data.append(int(i) * float(self.preamble.y_increment) * float(self.preamble.y_origin))
-        self.data = _data
+        return _data
 
     def __str__(self):
         data = ""
@@ -86,10 +93,25 @@ class Measurement:
             data += str(i) + "\n"
         return f"{self.preamble.__str__()}\n{data}"
 
-class SingleMeasurement:
-    def __init__(self, measurements):
-        self.measurements = measurements
- 
+
+class Measurements:
+    measurements = None
+
+    class FileName:
+        def __init__(self, measurement):
+            self.date = measurement.preamble.date[1:-1]
+            self.time = measurement.preamble.time[1:-1]
+            self.channel = measurement.channel
+            self.n = 0
+            self.extension = ".txt"
+
+        def increaseN(self):
+            self.n += 1
+
+        def __str__(self):
+            n = "" if self.n == 0 else f"_({self.n})"
+            return f"{self.date}_{self.time}_ch{self.channel}{n}{self.extension}"
+
     def save_to_disc(self, path):
         try:
             os.makedirs(path)
@@ -97,19 +119,67 @@ class SingleMeasurement:
             pass
 
         for i in self.measurements:
-            with open(os.path.join(path, f"{i.preamble.date[1:-1]}_{i.preamble.time[1:-1]}_{i.channel}"), "w") as f:
+            file_name = self.FileName(i)
+            while os.path.isfile(os.path.join(path, file_name.__str__())):
+                file_name.increaseN()
+            with open(os.path.join(path, file_name.__str__()), "w") as f:
                 f.writelines(i.__str__())
 
-class MultipleMeasurementsNoPreambles:
-    def __init__(self):
-        ...
+    def get_ms_and_data(self, line):
+        first_space = line.index(" ")
+        return (line[:first_space], line[first_space + 1 :])
 
-    def save_to_disc(self, path, dir_name):
-        ...
 
-class MultipleMeasurementsWithPreambles:
-    def __init__(self):
-        ...
+class SingleMeasurements(Measurements):
+    def __init__(self, measurements):
+        self.measurements = measurements
 
-    def save_to_disc(self, path, dir_name):
-        ...
+
+class MultipleMeasurementsNoPreambles(Measurements):
+    def __init__(self, file_path, preamble, channels):
+        """
+        channels should be string, e.g. "23"
+        """
+        self.file_path = file_path
+        self.preamble = preamble
+        self.channels = channels
+        self.measurements = self.parse_file()
+
+    def parse_file(self):
+        measurements = []
+
+        with open(self.file_path, "r") as f:
+            for i, line in enumerate(f):
+                ms, data = self.get_ms_and_data(line)
+                preamble = self.preamble + f",{ms}"
+                measurements.append(Measurement(preamble, data, self.channels[i % len(self.channels)]))
+
+        return measurements
+
+
+class MultipleMeasurementsWithPreambles(Measurements):
+    def __init__(self, file_path, channels):
+        """
+        channels should be string, e.g. "23"
+        """
+        self.file_path = file_path
+        self.channels = channels
+        self.measurements = self.parse_file()
+
+    def parse_file(self):
+        measurements = []
+
+        with open(self.file_path, "r") as f:
+            preamble = None
+            channel_index = 0
+            for i, line in enumerate(f):
+                if i % (len(self.channels) + 1) == 0:
+                    preamble = line
+                    channel_index = 0
+                else:
+                    ms, data = self.get_ms_and_data(line)
+                    preamble += f",{ms}"
+                    measurements.append(Measurement(preamble, data, self.channels[channel_index]))
+                    channel_index += 1
+
+        return measurements
