@@ -2,8 +2,8 @@ import os
 import PySimpleGUI as sg
 from backend.adapter import AdapterError
 from backend.command import (
-    AvarageCmd,
-    AvarageNoCmd,
+    AverageCmd,
+    AverageNoCmd,
     CheckIfResponsiveCmd,
     CommandError,
     CustomCmd,
@@ -327,7 +327,7 @@ class GUI:
                     self.currently_set_values["points"] = values[self.curr_points]
 
                 elif event == self.set_average_no:
-                    AvarageNoCmd(values[self.curr_average_no]).check_and_do()
+                    AverageNoCmd(values[self.curr_average_no]).check_and_do()
                     self.currently_set_values[self.average_pts] = values[self.curr_average_no]
 
                 elif event in (self.ch1, self.ch2, self.ch3, self.ch4):
@@ -338,11 +338,11 @@ class GUI:
 
                 elif event == self.averaging:
                     if values[event] == True:
-                        AvarageCmd(True).do()
+                        AverageCmd(True).do()
                     else:
-                        AvarageCmd(False).do()
+                        AverageCmd(False).do()
                     self.currently_set_values["average"] = values[event]
-                
+
                 elif event == self.reinterpret_trimmed_data:
                     ...
 
@@ -364,8 +364,15 @@ class GUI:
                         sg.popup("No channels were selected")
 
                 elif event == self.run:
-                    isPreamble = self.currently_set_values["preamble"]
                     channels = self.currently_set_values[self.channels]
+                    if not channels:
+                        sg.popup("No channels were selected")
+                        continue
+                    dir_to_store_measurements = values[self.curr_path]
+                    if not os.path.isdir(dir_to_store_measurements):
+                        sg.popup("Path does not exist")
+                        continue
+                    isPreamble = self.currently_set_values["preamble"]
                     tempfile = "assets/measurements/temp.txt"
                     StartRunCmds(tempfile, channels).do()
                     if sg.popup(custom_text="stop", title="Running", keep_on_top=True) == "stop":

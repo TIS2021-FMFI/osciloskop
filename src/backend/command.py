@@ -108,7 +108,7 @@ class PointsCmd(Command):
         return CustomCmdWithOutput(f"q: ACQUIRE:POINTS?").do()
 
 
-class AvarageNoCmd(Command):
+class AverageNoCmd(Command):
     def __init__(self, count):
         self.count = count
 
@@ -123,7 +123,7 @@ class AvarageNoCmd(Command):
         return CustomCmdWithOutput(f"q: ACQUIRE:count?").do()
 
 
-class AvarageCmd(Command):
+class AverageCmd(Command):
     def __init__(self, turn_on):
         self.turn_on = turn_on
 
