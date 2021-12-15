@@ -7,6 +7,7 @@ connect {int}
 cmd
 s run
 s :waveform:format word
+poff
 ```
 
 - if average

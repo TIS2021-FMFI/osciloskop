@@ -151,7 +151,7 @@ class Adapter:
             if message_string != self.cmd_exit:
                 raise AdapterError("could not send the command")
 
-    def send_and_get_output(self, messages, timeout = float('inf')):
+    def send_and_get_output(self, messages, timeout):
         """
         calls self.send(messages) and then self.get_output(timeout, lines)
         """

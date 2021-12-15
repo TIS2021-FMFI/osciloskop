@@ -1,9 +1,25 @@
 import os
-import subprocess
-
 import PySimpleGUI as sg
 from backend.adapter import AdapterError
-from backend.command import AvarageCmd, AvarageNoCmd, CheckIfResponsiveCmd, CommandError, CustomCmd, CustomCmdWithOutput, DisconnectCmd, ExitHpctrlCmd, FactoryResetCmd, InitializeCmd, LeaveCmdModeCmd, PointsCmd, SingleCmd
+from backend.command import (
+    AvarageCmd,
+    AvarageNoCmd,
+    CheckIfResponsiveCmd,
+    CommandError,
+    CustomCmd,
+    CustomCmdWithOutput,
+    DisconnectCmd,
+    ExitHpctrlCmd,
+    FactoryResetCmd,
+    InitializeCmds,
+    LeaveCmdModeCmd,
+    PointsCmd,
+    PreambleOffCmd,
+    PreampleOnCmd,
+    SingleCmds,
+    StartRunCmds,
+    StopRunCmds,
+)
 from PySimpleGUI.PySimpleGUI import popup_yes_no
 
 
@@ -32,12 +48,19 @@ class GUI:
     new_config = "New config"
     load_config = "Load config"
     config_file = "cfg_file"
+    reinterpret_trimmed_data = "reinterpret_trimmed_data"
+    set_preamble = "set_preamble"
 
     def __init__(self):
         sg.theme("DarkGrey9")
         self.currently_set_values = {self.channels: []}
         self.layout = self._create_layout()
-        self.window = sg.Window("Oscilloscope control", self.layout, size=(self.WIDTH, self.HEIGHT), element_justification="c")
+        self.window = sg.Window(
+            "Oscilloscope control",
+            self.layout,
+            size=(self.WIDTH, self.HEIGHT),
+            element_justification="c",
+        )
 
     def _create_layout(self):
         button_size = (10, 1)
@@ -45,7 +68,10 @@ class GUI:
         col_gpib = sg.Col(
             [
                 [sg.Text("Address number:"), sg.InputText(size=(12, 1), key=self.address)],
-                [sg.Button(self.connect, size=button_size), sg.Button(self.disconnect, size=button_size)],
+                [
+                    sg.Button(self.connect, size=button_size),
+                    sg.Button(self.disconnect, size=button_size),
+                ],
                 [sg.Button(self.terminal, size=button_size)],
                 [sg.Button(self.ping_osci)],
             ],
@@ -62,11 +88,34 @@ class GUI:
                     sg.Button("SET", size=button_size, key=self.set_average_no),
                 ],
                 [sg.Text("Points")],
-                [sg.InputText("4096", size=button_size, key=self.curr_points), sg.Button("SET", size=button_size, key=self.set_points)],
-                [sg.Checkbox("Channel 1", enable_events=True, key=self.ch1), sg.Checkbox("Channel 2", enable_events=True, key=self.ch2)],
-                [sg.Checkbox("Channel 3", enable_events=True, key=self.ch3), sg.Checkbox("Channel 4", enable_events=True, key=self.ch4)],
-                [sg.Checkbox("Send preamble after each measurement (slower)", enable_events=True, key="preamble_on", default=False)],
-                [sg.Checkbox("Reinterpret trimmed data", enable_events=True, key="reinterpret_trimmed_data", default=False)],
+                [
+                    sg.InputText("4096", size=button_size, key=self.curr_points),
+                    sg.Button("SET", size=button_size, key=self.set_points),
+                ],
+                [
+                    sg.Checkbox("Channel 1", enable_events=True, key=self.ch1),
+                    sg.Checkbox("Channel 2", enable_events=True, key=self.ch2),
+                ],
+                [
+                    sg.Checkbox("Channel 3", enable_events=True, key=self.ch3),
+                    sg.Checkbox("Channel 4", enable_events=True, key=self.ch4),
+                ],
+                [
+                    sg.Checkbox(
+                        "Send preamble after each measurement (slower)",
+                        enable_events=True,
+                        key=self.set_preamble,
+                        default=False,
+                    )
+                ],
+                [
+                    sg.Checkbox(
+                        "Reinterpret trimmed data",
+                        enable_events=True,
+                        key=self.reinterpret_trimmed_data,
+                        default=False,
+                    )
+                ],
                 [sg.Button(self.factory_reset_osci)],
             ],
             size=(self.WIDTH / 2, 280),
@@ -76,22 +125,46 @@ class GUI:
         col_run = sg.Col(
             [
                 [sg.Text("Directory in which the measurements will be saved:")],
-                [sg.InputText(key=self.curr_path, default_text="assets/measurements", enable_events=True)],
+                [
+                    sg.InputText(
+                        key=self.curr_path, default_text="assets/measurements", enable_events=True
+                    )
+                ],
                 [sg.FolderBrowse("Browse")],
-                [sg.Button(self.run, size=button_size, disabled=True), sg.Button(self.single, size=button_size, disabled=True)],
+                [
+                    sg.Button(self.run, size=button_size, disabled=True),
+                    sg.Button(self.single, size=button_size, disabled=True),
+                ],
             ],
             size=(self.WIDTH / 2, 140),
             pad=(0, 0),
         )
 
         col_cfg = sg.Col(
-            [[sg.Button(self.new_config), sg.Button(self.load_config), sg.Combo(values=[f for f in os.listdir(os.path.join("assets", "config")) if f.endswith(".txt")], key=self.config_file)]],
+            [
+                [
+                    sg.Button(self.new_config),
+                    sg.Button(self.load_config),
+                    sg.Combo(
+                        values=[
+                            f
+                            for f in os.listdir(os.path.join("assets", "config"))
+                            if f.endswith(".txt")
+                        ],
+                        key=self.config_file,
+                    ),
+                ]
+            ],
             key="cfg_col",
             pad=(0, 0),
             size=(self.WIDTH / 2, 100),
         )
 
-        col_info = sg.Col([[sg.Multiline(key="info", disabled=True, size=(self.WIDTH, 200))]], size=(self.WIDTH, 200), scrollable=True)
+        col_info = sg.Col(
+            [[sg.Multiline(key="info", disabled=True, size=(self.WIDTH, 200))]],
+            size=(self.WIDTH, 200),
+            scrollable=True,
+        )
 
         return [
             [sg.Frame("GPIB Settings", [[col_gpib]]), sg.Frame("Run and save", [[col_run]])],
@@ -101,7 +174,11 @@ class GUI:
 
     def open_config_creation(self):
         # opens a new window for creating a new configuration file
-        layout = [[sg.Multiline(key="cfg_input", size=(50, 20))], [sg.Button("Save"), sg.Button("Discard")], [sg.Text("Config name:"), sg.InputText(key="cfg_name")]]
+        layout = [
+            [sg.Multiline(key="cfg_input", size=(50, 20))],
+            [sg.Button("Save"), sg.Button("Discard")],
+            [sg.Text("Config name:"), sg.InputText(key="cfg_name")],
+        ]
         window = sg.Window("Config", layout)
         config_content = ""
         config_name = ""
@@ -137,7 +214,13 @@ class GUI:
                         input_default = self.currently_set_values[command]
                     input_key = f"input {len(rows)}"
                     buttons.append((command, input_key))
-                    rows.append([sg.Text(command), sg.InputText(input_default, size=(10, 1), key=input_key), sg.Button("set", key=len(rows))])
+                    rows.append(
+                        [
+                            sg.Text(command),
+                            sg.InputText(input_default, size=(10, 1), key=input_key),
+                            sg.Button("set", key=len(rows)),
+                        ]
+                    )
         rows.append([sg.Button("Set all"), sg.Button("Close")])
         return (rows, buttons)
 
@@ -166,21 +249,25 @@ class GUI:
         if config_content:
             with open(os.path.join("assets", "config", f"{file_name}.txt"), "w") as f:
                 f.write(config_content)
-        self.window[self.config_file].update(values=[f for f in os.listdir(os.path.join("assets", "config")) if f.endswith(".txt")])
+        self.window[self.config_file].update(
+            values=[f for f in os.listdir(os.path.join("assets", "config")) if f.endswith(".txt")]
+        )
 
     def update_info(self):
-        info_content = [f"{key} = {value}" for key, value in self.currently_set_values.items() if value]
+        info_content = [
+            f"{key} = {value}" for key, value in self.currently_set_values.items() if value
+        ]
         self.window["info"].update("\n".join(info_content))
 
     def button_activation(self, disable):
         for i in self.single, self.run:
             self.window[i].update(disabled=disable)
-    
+
     def open_terminal_window(self):
-        layout = [      
-            [sg.InputText(key="cmd_input"), sg.Button("cmd_send", bind_return_key=True)],      
-            [sg.Multiline(key="cmd_output", disabled=True, size=(450, 450), autoscroll=True)]
-        ] 
+        layout = [
+            [sg.InputText(key="cmd_input"), sg.Button("cmd_send", bind_return_key=True)],
+            [sg.Multiline(key="cmd_output", disabled=True, size=(450, 450), autoscroll=True)],
+        ]
         window = sg.Window("Terminal", layout, size=(500, 500))
         while True:
             event, values = window.read()
@@ -191,13 +278,13 @@ class GUI:
                 if cmd_in in ("clr", "cls", "clear"):
                     window["cmd_output"].update("")
                     continue
-                if len(cmd_in.split()) > 1 and cmd_in.split()[0] == "q":    # asking for output
+                if len(cmd_in.split()) > 1 and cmd_in.split()[0] == "q":  # asking for output
                     try:
                         output = CustomCmdWithOutput(cmd_in).do()
                     except AdapterError as e:
                         sg.popup(e)
                         continue
-                    window["cmd_output"].update(value=output+"\n", append=True)
+                    window["cmd_output"].update(value=output + "\n", append=True)
                 else:
                     CustomCmd(cmd_in).do()
             elif event in (sg.WIN_CLOSED, "Close"):
@@ -210,7 +297,7 @@ class GUI:
             event, values = self.window.read()
             try:
                 if event == self.connect:
-                    InitializeCmd(values[self.address]).do()
+                    InitializeCmds(values[self.address]).do()
                     self.currently_set_values[self.address] = values[self.address]
                     self.button_activation(False)
 
@@ -255,6 +342,16 @@ class GUI:
                     else:
                         AvarageCmd(False).do()
                     self.currently_set_values["average"] = values[event]
+                
+                elif event == self.reinterpret_trimmed_data:
+                    ...
+
+                elif event == self.set_preamble:
+                    if values[event] == True:
+                        PreampleOnCmd().do()
+                    else:
+                        PreambleOffCmd().do()
+                    self.currently_set_values["preamble"] = values[event]
 
                 elif event == self.single:
                     channels = self.currently_set_values[self.channels]
@@ -262,13 +359,17 @@ class GUI:
                         sg.popup("Path does not exist")
                         continue
                     if channels:
-                        SingleCmd(channels, values[self.curr_path]).do()
+                        SingleCmds(channels, values[self.curr_path]).do()
                     else:
                         sg.popup("No channels were selected")
 
                 elif event == self.run:
+                    isPreamble = self.currently_set_values["preamble"]
+                    channels = self.currently_set_values[self.channels]
+                    tempfile = "assets/measurements/temp.txt"
+                    StartRunCmds(tempfile, channels).do()
                     if sg.popup(custom_text="stop", title="Running", keep_on_top=True) == "stop":
-                        ...
+                        StopRunCmds(tempfile, values[self.curr_path], channels, isPreamble).do()
 
                 elif event == self.factory_reset_osci:
                     if popup_yes_no(title="Reset?", keep_on_top=True) == "Yes":
@@ -277,7 +378,7 @@ class GUI:
                 elif event == self.ping_osci:
                     msg = "ping successful" if CheckIfResponsiveCmd().do() else "couldn't ping"
                     sg.popup(msg)
-                    
+
                 elif event == self.terminal:
                     self.open_terminal_window()
 
