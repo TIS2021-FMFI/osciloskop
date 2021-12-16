@@ -88,9 +88,7 @@ class Measurement:
         return _data
 
     def __str__(self):
-        data = ""
-        for i in self.data:
-            data += str(i) + "\n"
+        data = "".join(str(i) + "\n" for i in self.data)
         return f"{self.preamble.__str__()}\n{data}"
 
 
@@ -119,11 +117,11 @@ class Measurements:
             pass
 
         for i in self.measurements:
-            file_name = self.FileName(i)
-            while os.path.isfile(os.path.join(path, file_name.__str__())):
+            file_name = str(self.FileName(i)).replace(":", "-")
+            while os.path.isfile(os.path.join(path, file_name)):
                 file_name.increaseN()
-            with open(os.path.join(path, file_name.__str__()), "w") as f:
-                f.writelines(i.__str__())
+            with open(os.path.join(path, file_name), "w") as f:
+                f.writelines(str(i))
 
     def get_ms_and_data(self, line):
         first_space = line.index(" ")
