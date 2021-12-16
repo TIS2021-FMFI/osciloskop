@@ -211,7 +211,7 @@ class StopRunCmds:
     def do(self):
         StopDataAcquisitionCmd().do()
         chans = channels_to_string(self.channels)
-        if self.isPreamble:
+        if self.is_preamble:
             MultipleMeasurementsWithPreambles(self.file_with_data, chans).save_to_disc(
                 self.folder_to_store_measurements
             )
