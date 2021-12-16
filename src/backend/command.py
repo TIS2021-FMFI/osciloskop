@@ -1,10 +1,5 @@
 from backend.adapter import Adapter
-from backend.measurement import (
-    Measurement,
-    MultipleMeasurementsNoPreambles,
-    MultipleMeasurementsWithPreambles,
-    SingleMeasurements,
-)
+from backend.measurement import *
 
 
 class CommandError(Exception):
@@ -207,11 +202,11 @@ class StartRunCmds:
 
 
 class StopRunCmds:
-    def __init__(self, file_with_data, folder_to_store_measurements, channels, isPreamble):
+    def __init__(self, file_with_data, folder_to_store_measurements, channels, is_preamble):
         self.file_with_data = file_with_data
         self.folder_to_store_measurements = folder_to_store_measurements
         self.channels = channels
-        self.isPreamble = isPreamble
+        self.is_preamble = is_preamble
 
     def do(self):
         StopDataAcquisitionCmd().do()
@@ -260,7 +255,4 @@ class InitializeCmds:
 
 
 def channels_to_string(channels):
-    res = ""
-    for ch in channels:
-        res += ch[2:]
-    return res
+    return "".join(ch[2:] for ch in channels)
