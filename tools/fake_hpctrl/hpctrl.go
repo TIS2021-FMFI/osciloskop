@@ -8,27 +8,53 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
 
+// all commands have to be in lowercase
 const (
 	logPath               = "tools/fake_hpctrl/log"
 	filePerm              = 0644
 	endOfLineChar         = 10
 	newLineChar           = '\n'
 	cmdExit               = "exit"
-	cmdIdn                = "q *idn?"
+	cmdGetIdn             = "q *idn?"
 	responseIdn           = "HEWLETT-PACKARD,83480A,US35240110,07.12"
 	cmdData               = "16"
 	responseData          = "1776\n6441\n8921\n12026\n16171\n18826\n20363\n20797\n19499\n17190"
-	cmdPreamble           = "q :waveform:preamble?"
+	cmdGetPreamble        = "q :waveform:preamble?"
 	responsePreamble      = "2,2,2000,50,5.000000E-12,2.2000000000E-08,0,1.32375E-06,1.33434E-03,0,2,1.00000E-08,2.2000000000E-08,8.00000E-02,0.0E+000,\"10 DEC 2021\",\"14:16:16:16\",\"83480A:US35240110\",\"83485A:US34430174\",2,100,2,1,2.00000E+10,0E+000"
 	cmdFile               = "file"
 	cmdStopContinuousRead = "?"
 	cmdPreambleOn         = "pon"
 	cmdPreambleOff        = "poff"
+	cmdGetAcquirePoints   = "q: acquire:points?"
+	cmdGetAcquireCount    = "q: acquire:count?"
+	cmdAcquirePoints      = "s: acquire:points"
+	cmdAcquireCount       = "s: acquire:count"
 )
+
+var (
+	fileWithPon  = filepath.Join("tools", "fake_hpctrl", "pon.txt")
+	fileWithPoff = filepath.Join("tools", "fake_hpctrl", "poff.txt")
+)
+
+type internalData struct {
+	acquirePoints       int
+	acquireCount        int
+	measurementFilePath string
+	isPreamble          bool
+}
+
+func newInternalData() internalData {
+	res := internalData{}
+	res.acquirePoints = 420
+	res.acquireCount = 69
+	res.isPreamble = true
+	return res
+}
 
 func main() {
 	iFlag := flag.Bool("i", false, "interactive flag")
@@ -41,14 +67,11 @@ func main() {
 	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, filePerm)
 	exitIfErr(err)
 	defer logFile.Close()
-
-	var measurementFilePath string
-
 	writeToFile(logFile, []byte(fmt.Sprintf("started at %v\n", time.Now())))
 
 	reader := bufio.NewReader(os.Stdin)
 
-	isPreamble := true
+	data := newInternalData()
 
 loop:
 	for {
@@ -61,31 +84,43 @@ loop:
 		switch textString {
 		case cmdExit:
 			break loop
-		case cmdIdn:
+		case cmdGetIdn:
 			fmt.Println(responseIdn)
 		case cmdData:
 			fmt.Println(responseData)
-		case cmdPreamble:
+		case cmdGetPreamble:
 			fmt.Println(responsePreamble)
 		case cmdPreambleOn:
-			isPreamble = true
+			data.isPreamble = true
 		case cmdPreambleOff:
-			isPreamble = false
+			data.isPreamble = false
+		case cmdGetAcquireCount:
+			fmt.Println(data.acquireCount)
+		case cmdGetAcquirePoints:
+			fmt.Println(data.acquirePoints)
 		case cmdStopContinuousRead:
-			if measurementFilePath == "" {
+			if data.measurementFilePath == "" {
 				log.Fatalln("measurementFile is empty")
 			}
 			var fileWithData string
-			if isPreamble {
-				fileWithData = "pon.txt"
+			if data.isPreamble {
+				fileWithData = fileWithPon
 			} else {
-				fileWithData = "poff.txt"
+				fileWithData = fileWithPoff
 			}
-			copyFile(measurementFilePath, filepath.Join("tools", "fake_hpctrl", fileWithData))
+			copyFile(data.measurementFilePath, fileWithData)
 		}
 
 		if strings.HasPrefix(textString, cmdFile) {
-			measurementFilePath = strings.TrimSpace(strings.TrimPrefix(textString, cmdFile))
+			data.measurementFilePath = strings.TrimSpace(strings.TrimPrefix(textString, cmdFile))
+		} else if strings.HasPrefix(textString, cmdAcquirePoints) {
+			points, err := getLast(textString)
+			exitIfErr(err)
+			data.acquirePoints = points
+		} else if strings.HasPrefix(textString, cmdAcquireCount) {
+			count, err := getLast(textString)
+			exitIfErr(err)
+			data.acquireCount = count
 		}
 
 	}
@@ -116,4 +151,10 @@ func copyFile(destination, source string) {
 
 	_, err = io.Copy(dst, src)
 	exitIfErr(err)
+}
+
+func getLast(cmd string) (int, error) {
+	split := strings.Fields(cmd)
+	last := split[len(split)-1]
+	return strconv.Atoi(last)
 }
