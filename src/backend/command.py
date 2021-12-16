@@ -94,7 +94,7 @@ class FileCmd(Command):
 
 
 class PointsCmd(Command):
-    def __init__(self, points):
+    def __init__(self, points=None):
         self.points = points
 
     def do(self):
@@ -109,7 +109,7 @@ class PointsCmd(Command):
 
 
 class AverageNoCmd(Command):
-    def __init__(self, count):
+    def __init__(self, count=None):
         self.count = count
 
     def do(self):
@@ -124,7 +124,7 @@ class AverageNoCmd(Command):
 
 
 class AverageCmd(Command):
-    def __init__(self, turn_on):
+    def __init__(self, turn_on=None):
         self.turn_on = turn_on
 
     def do(self):
