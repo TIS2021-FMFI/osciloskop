@@ -129,7 +129,7 @@ class AverageCmd(Command):
             CustomCmd("s :acquire:average off").do()
 
     def get_set_value(self):
-        return CustomCmdWithOutput("q :acquire:average?").do()
+        return CustomCmdWithOutput("q :acquire:average?").do() == "ON"
 
 
 class ExitHpctrlCmd(Command):
