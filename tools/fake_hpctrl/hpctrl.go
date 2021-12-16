@@ -34,6 +34,9 @@ const (
 	cmdGetAcquireCount    = "q: acquire:count?"
 	cmdAcquirePoints      = "s: acquire:points"
 	cmdAcquireCount       = "s: acquire:count"
+	cmdGetAverage         = "q :acquire:average?"
+	cmAverageOn           = "s :acquire:average on"
+	cmAverageOff          = "s :acquire:average off"
 )
 
 var (
@@ -46,6 +49,7 @@ type internalData struct {
 	acquireCount        int
 	measurementFilePath string
 	isPreamble          bool
+	isAverage           bool
 }
 
 func newInternalData() internalData {
@@ -98,6 +102,16 @@ loop:
 			fmt.Println(data.acquireCount)
 		case cmdGetAcquirePoints:
 			fmt.Println(data.acquirePoints)
+		case cmAverageOn:
+			data.isAverage = true
+		case cmAverageOff:
+			data.isAverage = false
+		case cmdGetAverage:
+			if data.isAverage {
+				fmt.Println("ON")
+			} else {
+				fmt.Println("OFF")
+			}
 		case cmdStopContinuousRead:
 			if data.measurementFilePath == "" {
 				log.Fatalln("measurementFile is empty")
