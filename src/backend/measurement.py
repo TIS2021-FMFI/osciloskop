@@ -108,7 +108,7 @@ class Measurements:
 
         def __str__(self):
             n = "" if self.n == 0 else f"_({self.n})"
-            return f"{self.date}_{self.time}_ch{self.channel}{n}{self.extension}"
+            return f"{self.date}_{self.time}_ch{self.channel}{n}{self.extension}".replace(":", "-")
 
     def save_to_disc(self, path):
         try:
@@ -117,10 +117,10 @@ class Measurements:
             pass
 
         for i in self.measurements:
-            file_name = str(self.FileName(i)).replace(":", "-")
-            while os.path.isfile(os.path.join(path, file_name)):
-                file_name.increaseN()
-            with open(os.path.join(path, file_name), "w") as f:
+            file = self.FileName(i)
+            while os.path.isfile(os.path.join(path, str(file))):
+                file.increaseN()
+            with open(os.path.join(path, str(file)), "w") as f:
                 f.writelines(str(i))
 
     def get_ms_and_data(self, line):
