@@ -157,6 +157,7 @@ class GUI:
         self.currently_set_values = {self.channels: []}
         self.currently_set_values[self.average_pts] = AverageNoCmd().get_set_value()
         self.currently_set_values[self.curr_points] = PointsCmd().get_set_value()
+        self.currently_set_values["preamble"] = False
         self.window[self.curr_points].update(self.currently_set_values[self.curr_points])
         self.window[self.curr_average_no].update(self.currently_set_values[self.average_pts])
         self.update_info()
@@ -365,7 +366,6 @@ class GUI:
             if not channels:
                 sg.popup("No channels were selected")
                 return True
-            dir_path = values[self.curr_path]
             is_premble = self.currently_set_values["preamble"]
             temp_file = "assets/measurements/temp.txt"
             StartRunCmds(temp_file, channels).do()
