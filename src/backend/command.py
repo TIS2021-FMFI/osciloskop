@@ -96,7 +96,7 @@ class PointsCmd(Command):
         CustomCmd(f"s: ACQUIRE:POINTS {self.points}").do()
 
     def check(self):
-        if self.points not in [str(i) for i in range(16, 4097)] and self.points != "auto":
+        if self.points not in [str(i) for i in range(16, 4097)] and self.points.lower() != "auto":
             raise CommandError(f"{self.points} is not a valid value")
 
     def get_set_value(self):
