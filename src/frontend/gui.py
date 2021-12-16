@@ -63,7 +63,7 @@ class GUI:
 
         col_osci = sg.Col(
             [
-                [sg.Checkbox(self.averaging, enable_events=True, key=self.averaging, default=True)],
+                [sg.Checkbox(self.averaging, enable_events=True, default=True, key=self.averaging)],
                 [sg.Text("Average No.")],
                 [  # todo it's doing weird stuff when hiding/showing
                     sg.InputText("100", size=button_size, key=self.curr_average_no),
@@ -157,9 +157,11 @@ class GUI:
         self.currently_set_values = {self.channels: []}
         self.currently_set_values[self.average_pts] = AverageNoCmd().get_set_value()
         self.currently_set_values[self.curr_points] = PointsCmd().get_set_value()
+        self.currently_set_values[self.averaging] = AverageCmd().get_set_value()
         self.currently_set_values["preamble"] = False
         self.window[self.curr_points].update(self.currently_set_values[self.curr_points])
         self.window[self.curr_average_no].update(self.currently_set_values[self.average_pts])
+        self.window[self.averaging].update(self.currently_set_values[self.averaging])
         self.update_info()
 
     def open_config_creation(self):
@@ -277,6 +279,7 @@ class GUI:
                     window[cmd_output].update(value=output + "\n", append=True)
                 else:
                     CustomCmd(cmd_in).do()
+                # self.initialize_set_values() todo - ak sa v terminali posle nieco co je zobrazene v gui
             elif event in (sg.WIN_CLOSED, "Close"):
                 break
         window.close()
