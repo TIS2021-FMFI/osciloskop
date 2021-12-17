@@ -1,25 +1,22 @@
 from backend.adapter import Adapter
 from backend.measurement import *
+from abc import ABC, abstractmethod
 
 
 class CommandError(Exception):
     pass
 
+class Command(ABC):
+    timeout = 5
 
-class Command:
-    adapter = Adapter(testing=True)
-    adapter.start_hpctrl()
-
-    def __init__(self):
+    @staticmethod
+    @abstractmethod
+    def do():
         pass
 
-    def do(self):
-        pass
-
-    def get_set_value(self):
-        pass
-
-    def check(self):
+    @staticmethod
+    @classmethod
+    def get_set_value():
         pass
 
     def check_and_do(self):
@@ -32,7 +29,7 @@ class ConnectCmd(Command):
         self.address = address
 
     def do(self):
-        self.adapter.connect(self.address)
+        adapter.connect(self.address)
 
     def check(self):
         if self.address not in [str(i) for i in range(1, 32)]:
@@ -41,17 +38,17 @@ class ConnectCmd(Command):
 
 class DisconnectCmd(Command):
     def do(self):
-        self.adapter.disconnect()
+        adapter.disconnect()
 
 
 class EnterCmdModeCmd(Command):
     def do(self):
-        self.adapter.enter_cmd_mode()
+        adapter.enter_cmd_mode()
 
 
 class LeaveCmdModeCmd(Command):
     def do(self):
-        self.adapter.exit_cmd_mode()
+        adapter.exit_cmd_mode()
 
 
 class CustomCmd(Command):
@@ -62,19 +59,18 @@ class CustomCmd(Command):
         """
         sends a command
         """
-        return self.adapter.send([self.cmd])
+        return adapter.send([self.cmd])
 
 
 class CustomCmdWithOutput(Command):
-    def __init__(self, cmd, timeout=5):
+    def __init__(self, cmd):
         self.cmd = cmd
-        self.timeout = timeout
 
     def do(self):
         """
         sends one command and returns output from hpctrl
         """
-        return self.adapter.send_and_get_output([self.cmd], self.timeout)
+        return adapter.send_and_get_output([self.cmd], self.timeout)
 
 
 class FileCmd(Command):
@@ -85,7 +81,7 @@ class FileCmd(Command):
         """
         sets path where the measured data should be stored
         """
-        CustomCmd(f"file {self.path}").do()
+        adapter.send(f"file {self.path}")
 
 
 class PointsCmd(Command):
@@ -93,14 +89,14 @@ class PointsCmd(Command):
         self.points = points
 
     def do(self):
-        CustomCmd(f"s: ACQUIRE:POINTS {self.points}").do()
+        adapter.send(f"s: ACQUIRE:POINTS {self.points}")
 
     def check(self):
         if self.points not in [str(i) for i in range(16, 4097)] and self.points.lower() != "auto":
             raise CommandError(f"{self.points} is not a valid value")
 
     def get_set_value(self):
-        return CustomCmdWithOutput(f"q: ACQUIRE:POINTS?").do()
+        return adapter.send_and_get_output(["q: ACQUIRE:POINTS?"], self.timeout)
 
 
 class AverageNoCmd(Command):
@@ -108,14 +104,14 @@ class AverageNoCmd(Command):
         self.count = count
 
     def do(self):
-        CustomCmd(f"s: ACQUIRE:count {self.count}").do()
+        adapter.send(f"s: ACQUIRE:count {self.count}")
 
     def check(self):
         if self.count not in [str(i) for i in range(1, 4097)]:
             raise CommandError(f"{self.count} is not a valid value")
 
     def get_set_value(self):
-        return CustomCmdWithOutput(f"q: ACQUIRE:count?").do()
+        return adapter.send_and_get_output(["q: ACQUIRE:count?"], self.timeout)
 
 
 class AverageCmd(Command):
@@ -124,17 +120,18 @@ class AverageCmd(Command):
 
     def do(self):
         if self.turn_on:
-            CustomCmd("s :acquire:average on").do()
+            adapter.send("s :acquire:average on")
         else:
-            CustomCmd("s :acquire:average off").do()
+            adapter.send("s :acquire:average off")
+
 
     def get_set_value(self):
-        return CustomCmdWithOutput("q :acquire:average?").do() == "ON"
+        return adapter.send_and_get_output(["q: ACQUIRE:average?"], self.timeout) == "ON"
 
 
 class ExitHpctrlCmd(Command):
     def do(self):
-        self.adapter.kill_hpctrl()
+        adapter.kill_hpctrl()
 
 
 class CheckIfResponsiveCmd(Command):
@@ -142,7 +139,7 @@ class CheckIfResponsiveCmd(Command):
         """
         do method returns true if hpctrl responds to q *IDN?
         """
-        return self.adapter.is_osci_responsive()
+        return adapter.is_osci_responsive()
 
 
 class GetPreambleCmd(Command):
@@ -150,104 +147,79 @@ class GetPreambleCmd(Command):
         """
         do method returns preamble data
         """
-        return CustomCmdWithOutput("q :WAVEFORM:PREAMBLE?").do()
+        return adapter.send_and_get_output(["q :WAVEFORM:PREAMBLE?"], self.timeout)
 
 
 class FactoryResetCmd(Command):
     def do(self):
-        CustomCmd("s *RST").do()
+        adapter.send("s *RST")
 
 
 class TurnOnRunModeCmd(Command):
     def do(self):
-        CustomCmd("s run").do()
+        adapter.send("s run")
 
 
 class SetFormatToWordCmd(Command):
     def do(self):
-        CustomCmd("s :waveform:format word").do()
+        adapter.send("s :waveform:format word")
 
 
 class PreampleOnCmd(Command):
     def do(self):
-        CustomCmd("pon").do()
+        adapter.send("pon")
 
 
 class PreambleOffCmd(Command):
     def do(self):
-        CustomCmd("poff").do()
+        adapter.send("poff")
 
 
 class StartDataAcquisitionCmd(Command):
     def do(self):
-        CustomCmd("*").do()
+        adapter.send("*")
 
 
 class StopDataAcquisitionCmd(Command):
     def do(self):
-        CustomCmd("?").do()
+        adapter.send("?")
 
 
-class StartRunCmds:
-    def __init__(self, file_to_store_data_from_hpctrl, channels):
-        self.file_to_store_data_from_hpctrl = file_to_store_data_from_hpctrl
-        self.channels = channels
-
-    def do(self):
+class Invoker:
+    
+    def start_run_cmds(self, file_to_store_data_from_hpctrl, channels):
         LeaveCmdModeCmd().do()
-        FileCmd(self.file_to_store_data_from_hpctrl).do()
+        FileCmd(file_to_store_data_from_hpctrl).do()
         EnterCmdModeCmd().do()
-        CustomCmd(channels_to_string(self.channels)).do()
+        adapter.send(channels_to_string(channels))
         StartDataAcquisitionCmd().do()
-
-
-class StopRunCmds:
-    def __init__(self, file_with_data, folder_to_store_measurements, channels, is_preamble):
-        self.file_with_data = file_with_data
-        self.folder_to_store_measurements = folder_to_store_measurements
-        self.channels = channels
-        self.is_preamble = is_preamble
-
-    def do(self):
+        
+    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble):
         StopDataAcquisitionCmd().do()
-        chans = channels_to_string(self.channels)
-        if self.is_preamble:
-            MultipleMeasurementsWithPreambles(self.file_with_data, chans).save_to_disc(
-                self.folder_to_store_measurements
+        chans = channels_to_string(channels)
+        if is_preamble:
+            MultipleMeasurementsWithPreambles(file_with_data, chans).save_to_disk(
+                folder_to_store_measurements
             )
         else:
             preamble = GetPreambleCmd().do()
-            MultipleMeasurementsNoPreambles(self.file_with_data, preamble, chans).save_to_disc(
-                self.folder_to_store_measurements
+            MultipleMeasurementsNoPreambles(file_with_data, preamble, chans).save_to_disk(
+                folder_to_store_measurements
             )
-
-
-class SingleCmds:
-    def __init__(self, channels, path):
-        self.channels = channels
-        self.path = path
-
-    def do(self):
-        """
-        do method returns array of measurements
-        """
+            
+    def single_cmds(self, channels, path):
         measurements = []
-        CustomCmd("s single").do()
-        for i in channels_to_string(self.channels):
-            CustomCmd(f"s :waveform:source channel{i}").do()
-            CustomCmd(f"s :waveform:data?").do()
-            data = CustomCmdWithOutput("16").do()
+        adapter.send("s single")
+        for i in channels_to_string(channels):
+            adapter.send(f"s :waveform:source channel{i}")
+            adapter.send("s :waveform:data?")
+            data = adapter.send_and_get_output("16", timeout=5)
             preamble = GetPreambleCmd().do()
             measurements.append(Measurement(preamble, data, i))
-        SingleMeasurements(measurements).save_to_disc(self.path)
-
-
-class InitializeCmds:
-    def __init__(self, address):
-        self.address = address
-
-    def do(self):
-        ConnectCmd(self.address).check_and_do()
+        SingleMeasurements(measurements).save_to_disk(path)
+        
+    def initialize_cmds(self, address):
+        ConnectCmd(address).check_and_do()
         EnterCmdModeCmd().do()
         SetFormatToWordCmd().do()
         TurnOnRunModeCmd().do()
@@ -256,3 +228,7 @@ class InitializeCmds:
 
 def channels_to_string(channels):
     return "".join(ch[2:] for ch in channels)
+
+
+adapter = Adapter(testing=True)
+adapter.start_hpctrl()
