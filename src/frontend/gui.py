@@ -334,7 +334,7 @@ class GUI:
                 self.currently_set_values[self.channels].remove(event)
 
         elif event == self.averaging:
-            AverageCmd(values[self.averaging]).do()
+            AverageCmd().do(values[self.averaging])
             self.currently_set_values["average"] = values[self.averaging]
 
         elif event == self.reinterpret_trimmed_data:

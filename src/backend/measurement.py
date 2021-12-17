@@ -39,7 +39,6 @@ class Preamble:
             pass
 
     def __str__(self):
-        type = ""
         if self.type == "1":
             type = "raw"
         elif self.type == "2":
@@ -104,7 +103,7 @@ class Measurements:
             self.n = 0
             self.extension = ".txt"
 
-        def increaseN(self):
+        def increase_n(self):
             self.n += 1
 
         def __str__(self):
@@ -120,7 +119,7 @@ class Measurements:
         for i in self.measurements:
             file = self.FileName(i)
             while os.path.isfile(os.path.join(path, str(file))):
-                file.increaseN()
+                file.increase_n()
             with open(os.path.join(path, str(file)), "w") as f:
                 f.writelines(str(i))
 
