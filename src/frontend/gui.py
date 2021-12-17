@@ -33,6 +33,7 @@ class GUI:
 
     def __init__(self):
         sg.theme("DarkGrey9")
+        self.invoker = Invoker()
         self.layout = self._create_layout()
         self.window = sg.Window(
             "Oscilloscope control",
@@ -156,7 +157,7 @@ class GUI:
         self.currently_set_values = {self.channels: []}
         self.currently_set_values[self.average_pts] = AverageNoCmd().get_set_value()
         self.currently_set_values[self.curr_points] = PointsCmd().get_set_value()
-        self.currently_set_values[self.averaging] = AverageCmd().get_set_value()
+        # self.currently_set_values[self.averaging] = AverageCmd().get_set_value()
         self.currently_set_values["preamble"] = False
         for key, value in self.currently_set_values.items():
             if key in self.window.AllKeysDict:
@@ -293,7 +294,7 @@ class GUI:
     def event_check(self) -> bool:  # returns False if closed
         event, values = self.window.read()
         if event == self.connect:
-            InitializeCmds(values[self.address]).do()
+            self.invoker.initialize_cmds(values[self.address])
             self.currently_set_values[self.address] = values[self.address]
             self.button_activation(False)
 
@@ -354,7 +355,7 @@ class GUI:
             channels = self.currently_set_values[self.channels]
             path = values[self.curr_path].replace("/", sep)
             if channels:
-                SingleCmds(channels, path).do()
+                self.invoker.single_cmds(channels, path)
             else:
                 sg.popup("No channels were selected")
 
@@ -369,9 +370,9 @@ class GUI:
                 return True
             send_preamble = self.currently_set_values["preamble"]
             temp_file = "assets/measurements/temp.txt"
-            StartRunCmds(temp_file, channels).do()
+            self.invoker.start_run_cmds(temp_file, channels)
             if sg.popup(custom_text="stop", title="Running", keep_on_top=True) == "stop":
-                StopRunCmds(temp_file, values[self.curr_path], channels, send_preamble).do()
+                self.invoker.stop_run_cmds(temp_file, values[self.curr_path], channels, send_preamble)
 
         elif event == self.factory_reset_osci:
             if sg.popup_yes_no(title="Reset?", keep_on_top=True) == "Yes":
