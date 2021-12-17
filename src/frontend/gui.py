@@ -157,7 +157,7 @@ class GUI:
         self.currently_set_values = {self.channels: []}
         self.currently_set_values[self.average_pts] = AverageNoCmd().get_set_value()
         self.currently_set_values[self.curr_points] = PointsCmd().get_set_value()
-        # self.currently_set_values[self.averaging] = AverageCmd().get_set_value()
+        self.currently_set_values[self.averaging] = AverageCmd().get_set_value()
         self.currently_set_values["preamble"] = False
         for key, value in self.currently_set_values.items():
             if key in self.window.AllKeysDict:
@@ -334,7 +334,7 @@ class GUI:
                 self.currently_set_values[self.channels].remove(event)
 
         elif event == self.averaging:
-            AverageCmd([values[self.averaging]]).do()
+            AverageCmd(values[self.averaging]).do()
             self.currently_set_values["average"] = values[self.averaging]
 
         elif event == self.reinterpret_trimmed_data:

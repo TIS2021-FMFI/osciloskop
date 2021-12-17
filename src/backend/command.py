@@ -126,7 +126,7 @@ class AverageCmd(Command):
 
 
     def get_set_value(self):
-        return adapter.send_and_get_output(["q: ACQUIRE:average?"], self.timeout) == "ON"
+        return adapter.send_and_get_output(["q :ACQUIRE:average?"], self.timeout) == "ON"
 
 
 class ExitHpctrlCmd(Command):
