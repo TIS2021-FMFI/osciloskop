@@ -110,7 +110,7 @@ class Measurements:
             n = "" if self.n == 0 else f"_({self.n})"
             return f"{self.date}_{self.time}_ch{self.channel}{n}{self.extension}".replace(":", "-")
 
-    def save_to_disc(self, path):
+    def save_to_disk(self, path):
         try:
             os.makedirs(path)
         except FileExistsError:
