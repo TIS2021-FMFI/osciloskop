@@ -1,5 +1,4 @@
-import os
-import re
+from os import listdir, path as ospath, sep
 import PySimpleGUI as sg
 from backend.adapter import AdapterError
 from backend.command import *
@@ -8,6 +7,7 @@ class GUI:
 
     WIDTH, HEIGHT = 750, 700
     # make const of every string that is repeated more than once
+    # todo strings should be osci commands (cuz that's how the keys are named in config window)
     connect = "Connect"
     disconnect = "Disconnect"
     quit_gui = "quit GUI"
@@ -16,15 +16,14 @@ class GUI:
     channels = "Channels"
     ping_osci = "Ping oscilloscope"
     averaging = "Averaging"
-    curr_average_no = "curr_avg_no"
-    set_average_no = "set_avg_no"
+    average_pts = "average_pts"
+    set_average_pts = "set_avg_pts"
     curr_points = "curr_points"
     set_points = "set_points"
     curr_path = "curr_path"
     terminal = "Terminal"
     run = "RUN"
     single = "SINGLE"
-    average_pts = "average_pts"
     ch1, ch2, ch3, ch4 = "ch1", "ch2", "ch3", "ch4"
     new_config = "New config"
     load_config = "Load config"
@@ -46,7 +45,7 @@ class GUI:
 
     def _create_layout(self):
         button_size = (10, 1)
-        # Elements inside the window
+
         col_gpib = sg.Col(
             [
                 [sg.Text("Address number:"), sg.InputText(size=(12, 1), key=self.address)],
@@ -57,7 +56,7 @@ class GUI:
                 [sg.Button(self.terminal, size=button_size)],
                 [sg.Button(self.ping_osci)],
             ],
-            size=(self.WIDTH / 2, 140),
+            size=(self.WIDTH // 2, 140),
             pad=(0, 0),
         )
 
@@ -65,9 +64,9 @@ class GUI:
             [
                 [sg.Checkbox(self.averaging, enable_events=True, default=True, key=self.averaging)],
                 [sg.Text("Average No.")],
-                [  # todo it's doing weird stuff when hiding/showing
-                    sg.InputText("100", size=button_size, key=self.curr_average_no),
-                    sg.Button("SET", size=button_size, key=self.set_average_no),
+                [
+                    sg.InputText("100", size=button_size, key=self.average_pts),
+                    sg.Button("SET", size=button_size, key=self.set_average_pts),
                 ],
                 [sg.Text("Points")],
                 [
@@ -100,7 +99,7 @@ class GUI:
                 ],
                 [sg.Button(self.factory_reset_osci)],
             ],
-            size=(self.WIDTH / 2, 280),
+            size=(self.WIDTH // 2, 280),
             pad=(0, 0),
         )
 
@@ -118,7 +117,7 @@ class GUI:
                     sg.Button(self.single, size=button_size, disabled=True),
                 ],
             ],
-            size=(self.WIDTH / 2, 140),
+            size=(self.WIDTH // 2, 140),
             pad=(0, 0),
         )
 
@@ -129,7 +128,7 @@ class GUI:
                     sg.Button(self.load_config),
                     sg.Combo(
                         values=[
-                            f for f in os.listdir(os.path.join("assets", "config"))
+                            f for f in listdir(ospath.join("assets", "config"))
                             if f.endswith(".txt")
                         ],
                         key=self.config_file,
@@ -138,7 +137,7 @@ class GUI:
             ],
             key="cfg_col",
             pad=(0, 0),
-            size=(self.WIDTH / 2, 100),
+            size=(self.WIDTH // 2, 100),
         )
 
         col_info = sg.Col(
@@ -159,9 +158,9 @@ class GUI:
         self.currently_set_values[self.curr_points] = PointsCmd().get_set_value()
         self.currently_set_values[self.averaging] = AverageCmd().get_set_value()
         self.currently_set_values["preamble"] = False
-        self.window[self.curr_points].update(self.currently_set_values[self.curr_points])
-        self.window[self.curr_average_no].update(self.currently_set_values[self.average_pts])
-        self.window[self.averaging].update(self.currently_set_values[self.averaging])
+        for key, value in self.currently_set_values.items():
+            if key in self.window.AllKeysDict:
+                self.window[key].update(value)
         self.update_info()
 
     def open_config_creation(self):
@@ -234,14 +233,13 @@ class GUI:
                 self._run_config_command(int(event), values, buttons)
             elif event in (sg.WIN_CLOSED, "Close"):
                 break
-        self.update_info()
         window.close()
 
     def create_config_file(self, config_content, file_name):
         if config_content:
-            open(os.path.join("assets", "config", f"{file_name}.txt"), "w").write(config_content)
+            open(ospath.join("assets", "config", f"{file_name}.txt"), "w").write(config_content)
         self.window[self.config_file].update(
-            values=[f for f in os.listdir(os.path.join("assets", "config")) if f.endswith(".txt")]
+            values=[f for f in listdir(ospath.join("assets", "config")) if f.endswith(".txt")]
         )
 
     def update_info(self):
@@ -251,8 +249,8 @@ class GUI:
         self.window["info"].update("\n".join(info_content))
 
     def button_activation(self, disable):
-        for i in self.single, self.run:
-            self.window[i].update(disabled=disable)
+        for button in self.single, self.run:
+            self.window[button].update(disabled=disable)
 
     def open_terminal_window(self):
         cmd_input, cmd_output, cmd_send = "cin", "cout", "csend"
@@ -279,14 +277,14 @@ class GUI:
                     window[cmd_output].update(value=output + "\n", append=True)
                 else:
                     CustomCmd(cmd_in).do()
-                # self.initialize_set_values() todo - ak sa v terminali posle nieco co je zobrazene v gui
+                # self.initialize_set_values() # todo - ak sa v terminali posle nieco co je zobrazene v gui
             elif event in (sg.WIN_CLOSED, "Close"):
                 break
         window.close()
         
     def get_mismatched_inputboxes(self, values):
         res = []
-        if values[self.curr_average_no] != self.currently_set_values[self.average_pts]:
+        if values[self.average_pts] != self.currently_set_values[self.average_pts]:
             res.append("Average No.")
         if values[self.curr_points] != self.currently_set_values[self.curr_points]:
             res.append("Points")
@@ -311,8 +309,8 @@ class GUI:
 
         elif event == self.load_config:
             file_name = values[self.config_file]
-            full_path = os.path.join("assets", "config", file_name)
-            if not os.path.isfile(full_path):
+            full_path = ospath.join("assets", "config", file_name)
+            if not ospath.isfile(full_path):
                 sg.popup("File does not exist")
                 return True
             if file_name:
@@ -324,9 +322,9 @@ class GUI:
             PointsCmd(values[self.curr_points]).check_and_do()
             self.currently_set_values["points"] = values[self.curr_points]
 
-        elif event == self.set_average_no:
-            AverageNoCmd(values[self.curr_average_no]).check_and_do()
-            self.currently_set_values[self.average_pts] = values[self.curr_average_no]
+        elif event == self.set_average_pts:
+            AverageNoCmd(values[self.average_pts]).check_and_do()
+            self.currently_set_values[self.average_pts] = values[self.average_pts]
 
         elif event in (self.ch1, self.ch2, self.ch3, self.ch4):
             if values[event]:
@@ -339,10 +337,10 @@ class GUI:
             self.currently_set_values["average"] = values[self.averaging]
 
         elif event == self.reinterpret_trimmed_data:
-            ...
+            pass # todo
 
         elif event == self.set_preamble:
-            if values[self.set_preamble] == True:
+            if values[self.set_preamble]:
                 PreampleOnCmd().do()
             else:
                 PreambleOffCmd().do()
@@ -354,7 +352,7 @@ class GUI:
                 sg.popup(f"Values are not set: {', '.join(mismatched)}")
                 return True
             channels = self.currently_set_values[self.channels]
-            path = values[self.curr_path].replace("/", os.sep)
+            path = values[self.curr_path].replace("/", sep)
             if channels:
                 SingleCmds(channels, path).do()
             else:
@@ -369,11 +367,11 @@ class GUI:
             if not channels:
                 sg.popup("No channels were selected")
                 return True
-            is_premble = self.currently_set_values["preamble"]
+            send_preamble = self.currently_set_values["preamble"]
             temp_file = "assets/measurements/temp.txt"
             StartRunCmds(temp_file, channels).do()
             if sg.popup(custom_text="stop", title="Running", keep_on_top=True) == "stop":
-                StopRunCmds(temp_file, values[self.curr_path], channels, is_premble).do()
+                StopRunCmds(temp_file, values[self.curr_path], channels, send_preamble).do()
 
         elif event == self.factory_reset_osci:
             if sg.popup_yes_no(title="Reset?", keep_on_top=True) == "Yes":
@@ -392,8 +390,6 @@ class GUI:
         elif event in (sg.WIN_CLOSED, self.quit_gui):
             return False
 
-        self.update_info()
-
         return True
 
     def main_loop(self):
@@ -401,6 +397,7 @@ class GUI:
             try:
                 if not self.event_check():
                     break
+                self.update_info()
             except (CommandError, AdapterError) as e:
                 sg.popup(e)
 
