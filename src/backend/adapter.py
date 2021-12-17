@@ -141,14 +141,15 @@ class Adapter:
         """
         if not self.is_hpctrl_running():
             raise AdapterError("hpctrl is not running")
-        message_string = "\n".join(messages)
+        if isinstance(messages, list):  
+            messages = "\n".join(messages)
         try:
-            print(message_string, file=self.process.stdin)
+            print(messages, file=self.process.stdin)
             self.process.stdin.flush()
             # TODO toto bolo pri hpctrl zmenene tak otestovat ci funguje bez sleep
             time.sleep(0.1)  # aby HPCTRL stihol spracovat prikaz, inak vypisuje !not ready, try again later (ping)
         except OSError:
-            if message_string != self.cmd_exit:
+            if messages != self.cmd_exit:
                 raise AdapterError("could not send the command")
 
     def send_and_get_output(self, messages, timeout):
