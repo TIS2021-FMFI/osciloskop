@@ -2,6 +2,7 @@
 
 - at the beginning
 ```
+logon
 osci
 connect {int}
 cmd
@@ -49,4 +50,5 @@ cmd
 23 # select channel 2 and 3
 *
 ?
+q :waveform:preamble? (if not preamble)
 ```

@@ -89,14 +89,14 @@ class PointsCmd(Command):
         self.points = points
 
     def do(self):
-        adapter.send(f"s: ACQUIRE:POINTS {self.points}")
+        adapter.send(f"s :ACQUIRE:POINTS {self.points}")
 
     def check(self):
         if self.points not in [str(i) for i in range(16, 4097)] and self.points.lower() != "auto":
             raise CommandError(f"{self.points} is not a valid value")
 
     def get_set_value(self):
-        return adapter.send_and_get_output(["q: ACQUIRE:POINTS?"], self.timeout)
+        return adapter.send_and_get_output(["q :ACQUIRE:POINTS?"], self.timeout)
 
 
 class AverageNoCmd(Command):
@@ -104,14 +104,14 @@ class AverageNoCmd(Command):
         self.count = count
 
     def do(self):
-        adapter.send(f"s: ACQUIRE:count {self.count}")
+        adapter.send(f"s :ACQUIRE:count {self.count}")
 
     def check(self):
         if self.count not in [str(i) for i in range(1, 4097)]:
             raise CommandError(f"{self.count} is not a valid value")
 
     def get_set_value(self):
-        return adapter.send_and_get_output(["q: ACQUIRE:count?"], self.timeout)
+        return adapter.send_and_get_output(["q :ACQUIRE:count?"], self.timeout)
 
 
 class AverageCmd(Command):
@@ -206,6 +206,7 @@ class Invoker:
             MultipleMeasurementsNoPreambles(file_with_data, preamble, chans).save_to_disk(
                 folder_to_store_measurements
             )
+        os.remove(file_with_data)
             
     def single_cmds(self, channels, path):
         measurements = []
@@ -217,6 +218,7 @@ class Invoker:
             preamble = GetPreambleCmd().do()
             measurements.append(Measurement(preamble, data, i))
         SingleMeasurements(measurements).save_to_disk(path)
+        TurnOnRunModeCmd().do()
         
     def initialize_cmds(self, address):
         ConnectCmd(address).check_and_do()

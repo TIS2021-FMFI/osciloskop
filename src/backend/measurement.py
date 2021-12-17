@@ -71,7 +71,8 @@ Y units:\t {self.y_units}
 Max bandwidth:\t {self.max_bandwidth_limit}
 Min bandwidth:\t {self.min_bandwidth_limit}"""
         if self.milliseconds:
-            res += f"Number of milliseconds from first measurement:\t {self.milliseconds}\n"
+            res += f"\nNumber of milliseconds from first measurement:\t {self.milliseconds}"
+        res += "\n"
         return res
 
 
@@ -107,7 +108,7 @@ class Measurements:
             self.n += 1
 
         def __str__(self):
-            n = "" if self.n == 0 else f"_({self.n})"
+            n = "" if self.n == 0 else f"({self.n})"
             return f"{self.date}_{self.time}_ch{self.channel}{n}{self.extension}".replace(":", "-")
 
     def save_to_disk(self, path):
@@ -172,7 +173,7 @@ class MultipleMeasurementsWithPreambles(Measurements):
             channel_index = 0
             for i, line in enumerate(f):
                 if i % (len(self.channels) + 1) == 0:
-                    preamble = line
+                    preamble = line[:-1]
                     channel_index = 0
                 else:
                     ms, data = self.get_ms_and_data(line)

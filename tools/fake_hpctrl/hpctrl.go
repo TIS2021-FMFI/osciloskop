@@ -30,10 +30,10 @@ const (
 	cmdStopContinuousRead = "?"
 	cmdPreambleOn         = "pon"
 	cmdPreambleOff        = "poff"
-	cmdGetAcquirePoints   = "q: acquire:points?"
-	cmdGetAcquireCount    = "q: acquire:count?"
-	cmdAcquirePoints      = "s: acquire:points"
-	cmdAcquireCount       = "s: acquire:count"
+	cmdGetAcquirePoints   = "q :acquire:points?"
+	cmdGetAcquireCount    = "q :acquire:count?"
+	cmdAcquirePoints      = "s :acquire:points"
+	cmdAcquireCount       = "s :acquire:count"
 	cmdGetAverage         = "q :acquire:average?"
 	cmAverageOn           = "s :acquire:average on"
 	cmAverageOff          = "s :acquire:average off"
@@ -57,6 +57,7 @@ func newInternalData() internalData {
 	res.acquirePoints = 420
 	res.acquireCount = 69
 	res.isPreamble = true
+	res.isAverage = true
 	return res
 }
 

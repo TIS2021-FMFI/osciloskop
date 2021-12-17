@@ -34,6 +34,7 @@ class GUI:
     def __init__(self):
         sg.theme("DarkGrey9")
         self.invoker = Invoker()
+        self.currently_set_values = {self.channels: []}
         self.layout = self._create_layout()
         self.window = sg.Window(
             "Oscilloscope control",
@@ -42,14 +43,13 @@ class GUI:
             element_justification="c",
             finalize=True
         )
-        self.initialize_set_values()
 
     def _create_layout(self):
         button_size = (10, 1)
 
         col_gpib = sg.Col(
             [
-                [sg.Text("Address number:"), sg.InputText(size=(12, 1), key=self.address)],
+                [sg.Text("Address number:"), sg.InputText(size=(12, 1), key=self.address, default_text="7")],
                 [
                     sg.Button(self.connect, size=button_size),
                     sg.Button(self.disconnect, size=button_size),
@@ -63,15 +63,15 @@ class GUI:
 
         col_osci = sg.Col(
             [
-                [sg.Checkbox(self.averaging, enable_events=True, default=True, key=self.averaging)],
+                [sg.Checkbox(self.averaging, enable_events=True, default=False, key=self.averaging)],
                 [sg.Text("Average No.")],
                 [
-                    sg.InputText("100", size=button_size, key=self.average_pts),
+                    sg.InputText("", size=button_size, key=self.average_pts),
                     sg.Button("SET", size=button_size, key=self.set_average_pts),
                 ],
                 [sg.Text("Points")],
                 [
-                    sg.InputText("4096", size=button_size, key=self.curr_points),
+                    sg.InputText("", size=button_size, key=self.curr_points),
                     sg.Button("SET", size=button_size, key=self.set_points),
                 ],
                 [
@@ -154,7 +154,6 @@ class GUI:
         ]
         
     def initialize_set_values(self):
-        self.currently_set_values = {self.channels: []}
         self.currently_set_values[self.average_pts] = AverageNoCmd().get_set_value()
         self.currently_set_values[self.curr_points] = PointsCmd().get_set_value()
         self.currently_set_values[self.averaging] = AverageCmd().get_set_value()
@@ -297,6 +296,7 @@ class GUI:
             self.invoker.initialize_cmds(values[self.address])
             self.currently_set_values[self.address] = values[self.address]
             self.button_activation(False)
+            self.initialize_set_values()
 
         elif event == self.disconnect:
             LeaveCmdModeCmd().do()
