@@ -157,6 +157,11 @@ class GUI:
             value = value.lower()
         if isinstance(key, str):
             key = key.lower()
+        if key == self.averaging_check:
+            if value == "on":
+                value = True
+            elif value == "off":
+                value = False
         self._currently_set_values[key] = value
         
     def get_set_value(self, key):
@@ -312,6 +317,11 @@ class GUI:
             for key, value in self._currently_set_values.items()
             if key in values and values[key] != value
         )
+        
+    def mismatched_popup(self, mismatched):
+        answer = sg.popup_yes_no(f"Values are not set:\n{mismatched}\nSet GUI values to currently set values?")
+        if answer == "Yes":
+            self.set_gui_values_to_set_values()
 
     def event_check(self) -> bool:  # returns False if closed
         event, values = self.window.read()
@@ -358,7 +368,7 @@ class GUI:
 
         elif event == self.averaging_check:
             AverageCmd().do(values[self.averaging_check])
-            self.add_set_value_key("average", values[self.averaging_check])   # todo key
+            self.add_set_value_key(self.averaging_check, values[self.averaging_check])   # todo key
 
         elif event == self.reinterpret_trimmed_data_check:
             pass # todo
@@ -373,7 +383,7 @@ class GUI:
         elif event == self.single_button:
             mismatched = self.get_mismatched_inputboxes(values)
             if mismatched:
-                sg.popup(f"Values are not set:\n{mismatched}")
+                self.mismatched_popup(mismatched)
                 return True
             channels = self.get_set_value(self.channels)
             path = values[self.curr_path].replace("/", sep)
@@ -385,7 +395,7 @@ class GUI:
         elif event == self.run_button:
             mismatched = self.get_mismatched_inputboxes(values)
             if mismatched:
-                sg.popup(f"Values are not set: {', '.join(mismatched)}")
+                self.mismatched_popup(mismatched)
                 return True
             channels = self.get_set_value(self.channels)
             if not channels:
