@@ -130,7 +130,9 @@ class AverageCmd(Command):
             self.send_cmd("s :acquire:average off")
 
     def get_set_value(self):
-        return self.send_cmd_with_output("q :acquire:average?") == "ON"
+        # todo real osci returns 0/1, right?
+        # todo if so, change return to int so checkbox can be (un)checked with value returned
+        return self.send_cmd_with_output("q :acquire:average?")
 
 
 class ExitHpctrlCmd(Command):
