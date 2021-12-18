@@ -40,7 +40,7 @@ class ConnectCmd(Command):
 
     def check(self):
         if self.address not in [str(i) for i in range(1, 32)]:
-            raise CommandError(f"'{self.address}' is not a valid address")
+            raise CommandError(f"'{self.address}' is not in range 1-31")
 
 
 class DisconnectCmd(Command):
@@ -100,7 +100,7 @@ class PointsCmd(Command):
 
     def check(self):
         if self.points not in [str(i) for i in range(16, 4097)] and self.points.lower() != "auto":
-            raise CommandError(f"{self.points} is not a valid value")
+            raise CommandError(f"{self.points} is not in range 16-4096")
 
     def get_set_value(self):
         return self.send_cmd_with_output("q :ACQUIRE:POINTS?")
@@ -115,7 +115,7 @@ class AverageNoCmd(Command):
 
     def check(self):
         if self.count not in [str(i) for i in range(1, 4097)]:
-            raise CommandError(f"{self.count} is not a valid value")
+            raise CommandError(f"{self.count} is not in range 1-4096")
 
     def get_set_value(self):
         return self.send_cmd_with_output("q :ACQUIRE:count?")
