@@ -12,3 +12,12 @@ TODO
 
 # Ignore measurements
 assets/measurements
+
+# Ignore go stuff
+pkg
+
+# Ignore compiled stuff
+*.exe
+
+# Ignore config files
+assets/config
