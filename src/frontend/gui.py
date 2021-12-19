@@ -186,15 +186,19 @@ class GUI:
         # opens a new window for creating a new configuration file
         layout = [
             [sg.Multiline(key="cfg_input", size=(50, 20))],
-            [sg.Button("Save"), sg.Button("Discard")],
-            [sg.Text("Config name:"), sg.InputText(key="cfg_name")],
+            [sg.Text("Config name:"), sg.InputText(key="cfg_name", size=(20,1))],
+            [sg.Button("Save"), sg.Button("Discard"), sg.Button("Help")]
         ]
-        window = sg.Window("Config", layout)
+        window = sg.Window("Config", [[sg.Col(layout, element_justification="c")]])
         config_content = ""
         config_name = ""
         while True:
             event, values = window.read()
             if event == "Discard":
+                if values["cfg_input"]: # ask only if nothing is written
+                    ans = sg.popup_yes_no("Are you sure you want to discard the current config?")
+                    if ans == "No":
+                        continue
                 break
             elif event == "Save":
                 if not values["cfg_name"]:
@@ -203,6 +207,13 @@ class GUI:
                     config_content = values["cfg_input"]
                     config_name = values["cfg_name"]
                     break
+            elif event == "Help":
+                sg.popup("""Write one command per line
+Include 's' or 'q' before a command
+'#' at the end of a command for a variable input
+\nExample:
+s :acquire:points 20
+s :acquire:count #""")
             elif event == sg.WIN_CLOSED:
                 break
         window.close()
