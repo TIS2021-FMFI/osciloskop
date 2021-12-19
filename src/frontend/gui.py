@@ -5,7 +5,7 @@ from backend.command import *
 
 class GUI:
 
-    WIDTH, HEIGHT = 750, 700
+    WIDTH, HEIGHT = 600, 500
     # make const of every string that is repeated more than once
     # todo strings should be osci commands (cuz that's how the keys are named in config window)
     connect_button = "Connect"
@@ -13,7 +13,7 @@ class GUI:
     address = "connect"
     factory_reset_osci = "Factory reset Oscilloscope"
     channels = "channels"
-    ping_osci_button = "Ping oscilloscope"
+    ping_osci_button = "Ping osci"
     averaging_check = "s :acquire:average"
     average_pts_input = "s :acquire:count"
     set_average_pts_button = "set_avg_pts"
@@ -45,19 +45,24 @@ class GUI:
 
     def _create_layout(self):
         button_size = (10, 1)
+        left_column_width = int(self.WIDTH * 1.8 / 5)
+        right_column_width = int(self.WIDTH * 3.2 / 5)
 
         col_gpib = sg.Col(
             [
-                [sg.Text("Address number:"), sg.InputText(size=(12, 1), key=self.address, default_text="7")],
+                [sg.Text("Address number:", pad=(5, 10)), sg.InputText(size=(12, 1), key=self.address, default_text="7")],
                 [
-                    sg.Button(self.connect_button, size=button_size),
+                    sg.Button(self.connect_button, size=button_size, pad=(10, 10)),
                     sg.Button(self.disconnect_button, size=button_size),
                 ],
-                [sg.Button(self.terminal_button, size=button_size)],
-                [sg.Button(self.ping_osci_button)],
+                [
+                    sg.Button(self.terminal_button, size=button_size, pad=(10, 10)),
+                    sg.Button(self.ping_osci_button, size=button_size)
+                ]
             ],
-            size=(self.WIDTH // 2, 150),
+            size=(left_column_width, 150),
             pad=(0, 0),
+            element_justification="c"
         )
 
         col_osci = sg.Col(
@@ -65,13 +70,13 @@ class GUI:
                 [sg.Checkbox("Averaging", enable_events=True, default=False, key=self.averaging_check)],
                 [sg.Text("Average No.")],
                 [
-                    sg.InputText("", size=button_size, key=self.average_pts_input),
-                    sg.Button("SET", size=button_size, key=self.set_average_pts_button),
+                    sg.InputText("", size=(15, 1), key=self.average_pts_input),
+                    sg.Button("Set", size=(5, 1), key=self.set_average_pts_button),
                 ],
                 [sg.Text("Points")],
                 [
-                    sg.InputText("", size=button_size, key=self.curr_points_input),
-                    sg.Button("SET", size=button_size, key=self.set_points_button),
+                    sg.InputText("", size=(15, 1), key=self.curr_points_input),
+                    sg.Button("Set", size=(5, 1), key=self.set_points_button),
                 ],
                 [
                     sg.Checkbox("Channel 1", enable_events=True, key=self.channels_checkboxes[0]),
@@ -91,8 +96,8 @@ class GUI:
                 ],
                 [sg.Button(self.factory_reset_osci)],
             ],
-            size=(self.WIDTH // 2, 280),
             pad=(0, 0),
+            size=(left_column_width, 280),
         )
 
         col_run = sg.Col(
@@ -100,12 +105,12 @@ class GUI:
                 [sg.Text("Directory in which the measurements will be saved:")],
                 [
                     sg.InputText(
-                        key=self.curr_path, default_text="assets/measurements", enable_events=True
-                    )
+                        key=self.curr_path, default_text="assets/measurements", enable_events=True, size=(34, 1)
+                    ),
+                    sg.FolderBrowse("Browse", initial_folder="assets", change_submits=True, enable_events=True)
                 ],
-                [sg.FolderBrowse("Browse", initial_folder="assets", change_submits=True, enable_events=True)],
                 [
-                    sg.Button(self.run_button, size=button_size, disabled=True),
+                    sg.Button(self.run_button, size=button_size, disabled=True, pad=(1, 10)),
                     sg.Button(self.single_button, size=button_size, disabled=True),
                 ],
                 [
@@ -117,8 +122,9 @@ class GUI:
                     )
                 ]
             ],
-            size=(self.WIDTH // 2, 150),
+            size=(right_column_width, 150),
             pad=(0, 0),
+            element_justification="c"
         )
 
         config_files = [f for f in listdir(ospath.join("assets", "config"))]
@@ -133,24 +139,19 @@ class GUI:
                         key=self.config_file_combo,
                         size=(15, 1)
                     ),
-                ]
+                ],
+                [sg.Text("Info")],
+                [sg.Multiline(key="info", disabled=True, size=(43, 13))]
             ],
             key="cfg_col",
             pad=(0, 0),
-            size=(self.WIDTH // 2, 100),
-        )
-
-        col_info = sg.Col(
-            [[sg.Multiline(key="info", disabled=True, size=(self.WIDTH, 200))]],
-            size=(self.WIDTH, 200),
-            scrollable=True,
-            vertical_scroll_only=True
+            size=(right_column_width, 280),
+            element_justification="c"
         )
 
         return [
             [sg.Frame("GPIB Settings", [[col_gpib]]), sg.Frame("Run and save", [[col_run]])],
-            [sg.Frame("Oscilloscope settings", [[col_osci]]), sg.Frame("Config", [[col_cfg]])],
-            [sg.Frame("Info", [[col_info]])],
+            [sg.Frame("Oscilloscope settings", [[col_osci]]), sg.Frame("Config and set values", [[col_cfg]])]
         ]
 
     def add_set_value_key(self, key, value):
