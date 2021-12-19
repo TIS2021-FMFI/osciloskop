@@ -451,12 +451,9 @@ s :acquire:count #""")
 
         elif event == self.ping_osci_button:
             if CheckIfResponsiveCmd().do():
-                msg = "ping successful"
-                col = "dark green"
+                sg.popup_no_border("ping successful", background_color="dark green")
             else:
-                msg = "couldn't ping"
-                col = "maroon"
-            sg.popup_no_border(msg, background_color=col)
+                sg.popup_no_border("couldn't ping", background_color="maroon")
 
         elif event == self.terminal_button:
             self.open_terminal_window()
