@@ -32,6 +32,7 @@ class GUI:
 
     def __init__(self):
         sg.theme("DarkGrey9")
+        sg.set_options(icon="assets/icon/icon.ico")
         self.invoker = Invoker()
         self._currently_set_values = {self.channels: []}
         self.layout = self._create_layout()
@@ -253,7 +254,6 @@ s :acquire:count #""")
             sg.popup_no_border(f"No value in {cmd}", background_color="maroon")
             return
         CustomCmd(f"{cmd} {val}").do()
-        print(cmd.lower())
         if cmd.lower() in self._currently_set_values:
             self.add_set_value_key(cmd, val)
             self.update_info()
