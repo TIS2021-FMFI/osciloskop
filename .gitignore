@@ -16,8 +16,9 @@ assets/measurements
 # Ignore go stuff
 pkg
 
-# Ignore compiled stuff
+# Ignore all binaries on PeasantOS except fake hpctrl
 *.exe
+!tools/fake_hpctrl/hpctrl.exe
 
 # Ignore config files
 assets/config
