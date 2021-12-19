@@ -56,7 +56,7 @@ class GUI:
                 [sg.Button(self.terminal_button, size=button_size)],
                 [sg.Button(self.ping_osci_button)],
             ],
-            size=(self.WIDTH // 2, 140),
+            size=(self.WIDTH // 2, 150),
             pad=(0, 0),
         )
 
@@ -80,14 +80,6 @@ class GUI:
                 [
                     sg.Checkbox("Channel 3", enable_events=True, key=self.channels_checkboxes[2]),
                     sg.Checkbox("Channel 4", enable_events=True, key=self.channels_checkboxes[3]),
-                ],
-                [
-                    sg.Checkbox(
-                        "Send preamble after each measurement (slower)",
-                        enable_events=True,
-                        key=self.preamble_check,
-                        default=False,
-                    )
                 ],
                 [
                     sg.Checkbox(
@@ -116,8 +108,16 @@ class GUI:
                     sg.Button(self.run_button, size=button_size, disabled=True),
                     sg.Button(self.single_button, size=button_size, disabled=True),
                 ],
+                [
+                    sg.Checkbox(
+                        "Send preamble after each measurement (slower)",
+                        enable_events=True,
+                        key=self.preamble_check,
+                        default=False,
+                    )
+                ]
             ],
-            size=(self.WIDTH // 2, 140),
+            size=(self.WIDTH // 2, 150),
             pad=(0, 0),
         )
 
@@ -144,6 +144,7 @@ class GUI:
             [[sg.Multiline(key="info", disabled=True, size=(self.WIDTH, 200))]],
             size=(self.WIDTH, 200),
             scrollable=True,
+            vertical_scroll_only=True
         )
 
         return [
@@ -208,51 +209,56 @@ class GUI:
         return (config_content, config_name)
 
     def _create_config_layout(self, file_name):
+        
+        def parse_line(line):
+            if "#" in line:
+                return " ".join(line.split()[:-1]), True
+            return line, False
+            
         rows = []  # layout rows
-        buttons = []  # [command_text, input_key]
-        with open(file_name) as f:
-            for line in f:
-                line = line.strip()
-                if "#" not in line:
-                    rows.append([sg.Text(line), sg.Button("set", key=len(rows))])
-                    buttons.append((line,))
-                elif len(line.split()) > 1:
-                    command = " ".join(line.split()[:-1])
-                    input_default = ""
-                    if command in self._currently_set_values.keys():
-                        input_default = self.get_set_value(command)
-                    input_key = f"input {len(rows)}"
-                    buttons.append((command, input_key))
-                    rows.append(
-                        [
-                            sg.Text(command),
-                            sg.InputText(input_default, size=(10, 1), key=input_key),
-                            sg.Button("set", key=len(rows)),
-                        ]
-                    )
+        buttons = {}  # command: <input> (None if no input #)
+        txt_size=(30, 1)
+        lines = [line.strip() for line in open(file_name).readlines()]
+        for line in lines:
+            input_key = None
+            cmd, has_input = parse_line(line)
+            rows.append([sg.Text(cmd, size=txt_size), sg.Button("Set", key=cmd)])
+            if has_input:   # hashtag in line, add input element
+                input_key = f"input {len(rows)-1}"
+                input_default = self.get_set_value(cmd) if cmd.lower() in self._currently_set_values else ""
+                rows[-1].insert(1, sg.InputText(input_default, size=(10, 1), key=input_key))
+            buttons[cmd] = input_key
         rows.append([sg.Button("Set all"), sg.Button("Close")])
-        return (rows, buttons)
+        column_height = 500
+        scroll = True
+        rows_height = len(rows) * 35
+        if rows_height < 500:
+            column_height = rows_height
+            scroll = False
+        return (sg.Column(rows, scrollable=scroll, vertical_scroll_only=True, size=(400, column_height)), buttons)
 
-    def _run_config_command(self, row_index, values, buttons):
-        command = buttons[row_index][0]
-        if len(buttons[row_index]) == 2:
-            value = values[buttons[row_index][1]]
+    def _run_config_command(self, values, cmd, input_key):
+        if input_key is not None:
+            val = values[input_key]
         else:
-            value = command.split()[-1]
-            command = " ".join(command.split()[:-1])
-        CustomCmd(f"{command} {value}").do()
-        self.add_set_value_key(command, value)
+            cmd, val = " ".join(cmd.split()[:-1]), cmd.split()[-1]
+        if val == "":
+            sg.popup(f"No value in {cmd}")
+            return
+        CustomCmd(f"{cmd} {val}").do()
+        if cmd.lower() in self._currently_set_values:
+            self.add_set_value_key(cmd, val)
 
     def open_config_window(self, file_name):
-        layout, buttons = self._create_config_layout(file_name)
-        window = sg.Window("Run config", layout, grab_anywhere=True)
-        while True:
+        layout, button_input_map = self._create_config_layout(file_name)
+        window = sg.Window("Run config", [[layout]])
+        while True: # button key - button_input_map.key (command), input key - button_input_map[command]
             event, values = window.read()
             if event == "Set all":
-                for i in range(len(buttons)):
-                    self._run_config_command(i, values, buttons)
-            elif event in range(len(buttons)):
-                self._run_config_command(int(event), values, buttons)
+                for cmd, input_key in button_input_map.items():
+                    self._run_config_command(values, cmd, input_key)
+            elif event in button_input_map.keys():
+                self._run_config_command(values, event, button_input_map[event])
             elif event in (sg.WIN_CLOSED, "Close"):
                 break
         window.close()
