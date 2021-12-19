@@ -30,6 +30,8 @@ class GUI:
     config_file_combo = "cfg file"
     reinterpret_trimmed_data_check = "reinterpret trimmed data"
     is_data_reinterpreted = True
+    color_red = "maroon"
+    color_green = "dark green"
 
     def __init__(self):
         sg.theme("DarkGrey9")
@@ -200,7 +202,7 @@ class GUI:
                 break
             elif event == "Save":
                 if not values["cfg_name"]:
-                    sg.popup_no_border("Config name is empty", background_color="maroon")
+                    sg.popup_no_border("Config name is empty", background_color=self.color_red)
                 else:
                     config_content = values["cfg_input"]
                     config_name = values["cfg_name"]
@@ -252,7 +254,7 @@ s :acquire:count #""")
         else:
             cmd, val = " ".join(cmd.split()[:-1]), cmd.split()[-1]
         if val == "":
-            sg.popup_no_border(f"No value in {cmd}", background_color="maroon")
+            sg.popup_no_border(f"No value in {cmd}", background_color=self.color_red)
             return
         CustomCmd(f"{cmd} {val}").do()
         if cmd.lower() in self._currently_set_values:
@@ -329,7 +331,7 @@ s :acquire:count #""")
                     try:
                         output = CustomCmdWithOutput(cmd_in).do()
                     except AdapterError as e:
-                        sg.popup_no_border(e, background_color="maroon")
+                        sg.popup_no_border(e, background_color=self.color_red)
                         continue
                     window[cmd_output].update(value=output + "\n", append=True)
                 else:
@@ -341,7 +343,7 @@ s :acquire:count #""")
                             self.add_set_value_key(cmd, val)
                             self.update_info()
                     except AdapterError as e:
-                        sg.popup_no_border(e, background_color="maroon")
+                        sg.popup_no_border(e, background_color=self.color_red)
 
             elif event in (sg.WIN_CLOSED, "Close"):
                 break
@@ -380,12 +382,12 @@ s :acquire:count #""")
             file_name = values[self.config_file_combo]
             full_path = ospath.join("assets", "config", file_name)
             if not ospath.isfile(full_path):
-                sg.popup_no_border("File does not exist", background_color="maroon")
+                sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
             if file_name:
                 self.open_config_window(full_path)
             else:
-                sg.popup_no_border("File not chosen", background_color="maroon")
+                sg.popup_no_border("File not chosen", background_color=self.color_red)
 
         elif event == self.set_points_button:
             PointsCmd(values[self.curr_points_input]).check_and_do()
@@ -427,7 +429,7 @@ s :acquire:count #""")
             if channels:
                 self.invoker.single_cmds(channels, path, self.is_data_reinterpreted)
             else:
-                sg.popup_no_border("No channels were selected", background_color="maroon")
+                sg.popup_no_border("No channels were selected", background_color=self.color_red)
 
         elif event == self.run_button:
             mismatched = self.get_mismatched_inputboxes(values)
@@ -436,12 +438,12 @@ s :acquire:count #""")
                 return True
             channels = self.get_set_value(self.channels)
             if not channels:
-                sg.popup_no_border("No channels were selected", background_color="maroon")
+                sg.popup_no_border("No channels were selected", background_color=self.color_red)
                 return True
             send_preamble = self.get_set_value(self.preamble_check)
             temp_file = self.convert_path("assets/measurements/temp.txt")
             self.invoker.start_run_cmds(temp_file, channels)
-            sg.popup_no_border(custom_text="stop", title="Running", keep_on_top=True, background_color="maroon")
+            sg.popup_no_border(custom_text="stop", title="Running", keep_on_top=True, background_color=self.color_red)
             path = self.convert_path(values[self.curr_path])
             self.invoker.stop_run_cmds(temp_file, path, channels, send_preamble, self.is_data_reinterpreted)
 
@@ -450,13 +452,13 @@ s :acquire:count #""")
             if sg.popup_get_text(f"Type '{reset_message}' to factory reset", keep_on_top=True) == reset_message:
                 FactoryResetCmd().do()
                 return True
-            sg.popup_no_border(f"Didn't reset, input wasn't '{reset_message}'", background_color="maroon")
+            sg.popup_no_border(f"Didn't reset, input wasn't '{reset_message}'", background_color=self.color_red)
 
         elif event == self.ping_osci_button:
             if CheckIfResponsiveCmd().do():
-                sg.popup_no_border("ping successful", background_color="dark green")
+                sg.popup_no_border("ping successful", background_color=self.color_green)
             else:
-                sg.popup_no_border("couldn't ping", background_color="maroon")
+                sg.popup_no_border("couldn't ping", background_color=self.color_red)
 
         elif event == self.terminal_button:
             self.open_terminal_window()
@@ -476,7 +478,7 @@ s :acquire:count #""")
                     break
                 self.update_info()
             except (CommandError, AdapterError) as e:
-                sg.popup_no_border(e, background_color="maroon")
+                sg.popup_no_border(e, background_color=self.color_red)
             except Exception as e:
                 print(e)
 
