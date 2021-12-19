@@ -91,6 +91,9 @@ class Measurement:
         data = "".join(str(i) + "\n" for i in self.data)
         return f"{self.preamble.__str__()}\n{data}"
 
+    def append_ms_to_preamble(self, ms):
+        self.preamble.milliseconds = ms
+
 
 class Measurements:
     measurements = None
@@ -149,8 +152,11 @@ class MultipleMeasurementsNoPreambles(Measurements):
         with open(self.file_path, "r") as f:
             for i, line in enumerate(f):
                 ms, data = self.get_ms_and_data(line)
-                preamble = self.preamble + f",{ms}"
-                measurements.append(Measurement(preamble, data, self.channels[i % len(self.channels)]))
+                measurement = Measurement(
+                    self.preamble, data, self.channels[i % len(self.channels)]
+                )
+                measurement.append_ms_to_preamble(ms)
+                measurements.append(measurement)
 
         return measurements
 
@@ -171,13 +177,16 @@ class MultipleMeasurementsWithPreambles(Measurements):
             preamble = None
             channel_index = 0
             for i, line in enumerate(f):
-                if i % (len(self.channels) + 1) == 0:
+                if i % 2 == 0:
                     preamble = line[:-1]
-                    channel_index = 0
                 else:
                     ms, data = self.get_ms_and_data(line)
-                    preamble += f",{ms}"
-                    measurements.append(Measurement(preamble, data, self.channels[channel_index]))
-                    channel_index += 1
+                    measurement = Measurement(preamble, data, self.channels[channel_index])
+                    measurement.append_ms_to_preamble(ms)
+                    measurements.append(measurement)
+                    if channel_index > len(self.channels) - 2:
+                        channel_index = 0
+                    else:
+                        channel_index += 1
 
         return measurements

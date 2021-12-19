@@ -234,6 +234,7 @@ class Invoker:
         TurnOnRunModeCmd().do()
 
     def initialize_cmds(self, address):
+        adapter.start_hpctrl()
         ConnectCmd(address).check_and_do()
         EnterCmdModeCmd().do()
         SetFormatToWordCmd().do()
@@ -251,4 +252,3 @@ def channels_to_string(channels):
 
 
 adapter = Adapter(testing=True)
-adapter.start_hpctrl()
