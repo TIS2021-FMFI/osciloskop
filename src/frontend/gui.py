@@ -1,6 +1,5 @@
 from os import listdir, path as ospath, sep
 import PySimpleGUI as sg
-from PySimpleGUI.PySimpleGUI import WIN_CLOSED
 from backend.adapter import AdapterError
 from backend.command import *
 
@@ -122,16 +121,15 @@ class GUI:
             pad=(0, 0),
         )
 
+        config_files = [f for f in listdir(ospath.join("assets", "config"))]
         col_cfg = sg.Col(
             [
                 [
                     sg.Button(self.new_config_button),
                     sg.Button(self.load_config_button),
                     sg.Combo(
-                        values=[
-                            f for f in listdir(ospath.join("assets", "config"))
-                            if f.endswith(".txt")
-                        ],
+                        values=config_files,
+                        default_value=config_files[0],
                         key=self.config_file_combo,
                     ),
                 ]
@@ -253,8 +251,11 @@ s :acquire:count #""")
             sg.popup(f"No value in {cmd}")
             return
         CustomCmd(f"{cmd} {val}").do()
+        print(cmd.lower())
         if cmd.lower() in self._currently_set_values:
             self.add_set_value_key(cmd, val)
+            self.update_info()
+            # self.window.refresh()
 
     def open_config_window(self, file_name):
         layout, button_input_map = self._create_config_layout(file_name)
@@ -288,18 +289,36 @@ s :acquire:count #""")
             self.window[button].update(disabled=disable)
 
     def open_terminal_window(self):
+        
+        self.input_ix = 0
+        input_history = [""]
+        def get_prev_input(self, event):
+            if self.input_ix < len(input_history) - 1:
+                self.input_ix += 1
+            window[cmd_input].update(input_history[self.input_ix])
+            
+        def get_next_input(self, event):
+            if self.input_ix > 0:
+                self.input_ix -= 1
+            window[cmd_input].update(input_history[self.input_ix])
+
         cmd_input, cmd_output, cmd_send = "cin", "cout", "csend"
         layout = [
             [sg.InputText(key=cmd_input, size=(50, 20)), sg.Button("Send", key=cmd_send, bind_return_key=True)],
             [sg.Multiline(key=cmd_output, disabled=True, size=(60, 450), autoscroll=True)],
         ]
-        window = sg.Window("Terminal", layout, size=(450, 500))
+        window = sg.Window("Terminal", layout, size=(450, 500), finalize=True)
+        window[cmd_input].Widget.bind("<Up>", lambda e: get_prev_input(self, e))
+        window[cmd_input].Widget.bind("<Down>", lambda e: get_next_input(self, e))
         while True:
             event, values = window.read()
             if event == cmd_send:
                 window[cmd_input].update("")
                 cmd_in = values[cmd_input]
+                if cmd_in:
+                    input_history.insert(1, cmd_in)
                 window[cmd_output].update(value=f">>> {cmd_in}\n", append=True)
+                cmd_in = cmd_in.lower()
                 if cmd_in in ("clr", "cls", "clear"):
                     window[cmd_output].update("")
                     continue
@@ -317,12 +336,13 @@ s :acquire:count #""")
                         val = cmd_in.split()[-1]
                         if cmd in self._currently_set_values:
                             self.add_set_value_key(cmd, val)
+                            self.update_info()
                     except AdapterError as e:
                         sg.popup(e)
+
             elif event in (sg.WIN_CLOSED, "Close"):
                 break
         window.close()
-        self.update_info()
         
     def get_mismatched_inputboxes(self, values):
         return "".join(
@@ -434,7 +454,7 @@ s :acquire:count #""")
         elif event == "Browse":
             self.window[self.curr_path].update(values["Browse"])
 
-        elif event == WIN_CLOSED:
+        elif event == sg.WIN_CLOSED:
             return False
 
         return True
