@@ -129,8 +129,9 @@ class GUI:
                     sg.Button(self.load_config_button),
                     sg.Combo(
                         values=config_files,
-                        default_value=config_files[0],
+                        default_value=config_files[0] if config_files else "",
                         key=self.config_file_combo,
+                        size=(15, 1)
                     ),
                 ]
             ],
