@@ -130,9 +130,7 @@ class AverageCmd(Command):
             self.send_cmd("s :acquire:average off")
 
     def get_set_value(self):
-        # todo real osci returns 0/1, right?
-        # todo if so, change return to int so checkbox can be (un)checked with value returned
-        return self.send_cmd_with_output("q :acquire:average?")
+        return self.send_cmd_with_output("q :acquire:average?") == "1"
 
 
 class ExitHpctrlCmd(Command):
@@ -190,6 +188,13 @@ class StopDataAcquisitionCmd(Command):
     def do(self):
         self.send_cmd("?")
 
+class TurnOnChannel(Command):
+    def __init__(self, channel):
+        self.channel = channel
+
+    def do(self):
+        self.send_cmd(f"s :channel{self.channel}:display on")
+
 
 class Invoker:
 
@@ -221,6 +226,8 @@ class Invoker:
             CustomCmd(f"s :waveform:source channel{i}").do()
             CustomCmd("s :waveform:data?").do()
             data = CustomCmdWithOutput("16").do()
+            # cut the count
+            data = data[:data.rfind("\n")]
             preamble = GetPreambleCmd().do()
             measurements.append(Measurement(preamble, data, i))
         SingleMeasurements(measurements).save_to_disk(path)
@@ -232,6 +239,11 @@ class Invoker:
         SetFormatToWordCmd().do()
         TurnOnRunModeCmd().do()
         PreambleOffCmd().do()
+
+    def disengage_cmd(self):
+        LeaveCmdModeCmd().do()
+        DisconnectCmd().do()
+        ExitHpctrlCmd().do()
 
 
 def channels_to_string(channels):

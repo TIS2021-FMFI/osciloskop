@@ -62,7 +62,9 @@ class Adapter:
         out_str = ""
         get_started = time.time()
 
-        while (time.time() < get_started + timeout) and not self.out_queue.empty():
+        while not self.out_queue.empty():
+            if time.time() > get_started + timeout:
+                raise AdapterError(f"timeout error: the operation took longer than {timeout} seconds")
             out_str += self.out_queue.get_nowait()
 
         self.clear_input_queue()
@@ -135,7 +137,7 @@ class Adapter:
         """
         return self.send_and_get_output([self.cmd_idn], 0.2) == self.cmd_idn_response
 
-    def send(self, messages):
+    def send(self, messages, clean_output_after=True):
         """
         prints messages into self.process.stdin
         """
@@ -151,12 +153,15 @@ class Adapter:
         except OSError:
             if messages != self.cmd_exit:
                 raise AdapterError("could not send the command")
+        
+        if clean_output_after:
+            self.clear_input_queue()
 
     def send_and_get_output(self, messages, timeout):
         """
         calls self.send(messages) and then self.get_output(timeout, lines)
         """
-        self.send(messages)
+        self.send(messages, False)
         return self.get_output(timeout)
 
     def connect(self, address):

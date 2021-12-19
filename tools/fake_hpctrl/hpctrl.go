@@ -82,6 +82,10 @@ loop:
 	for {
 		text, err := reader.ReadBytes(endOfLineChar)
 		exitIfErr(err)
+
+		// simulating delay
+		time.Sleep(time.Microsecond * 800)
+
 		writeToFile(logFile, text)
 
 		textString := strings.TrimSpace(strings.ToLower(string(text)))
@@ -109,9 +113,9 @@ loop:
 			data.isAverage = false
 		case cmdGetAverage:
 			if data.isAverage {
-				fmt.Println("ON")
+				fmt.Println("1")
 			} else {
-				fmt.Println("OFF")
+				fmt.Println("0")
 			}
 		case cmdStopContinuousRead:
 			if data.measurementFilePath == "" {

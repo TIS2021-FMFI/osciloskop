@@ -1,5 +1,6 @@
 from os import listdir, path as ospath, sep
 import PySimpleGUI as sg
+from PySimpleGUI.PySimpleGUI import WIN_CLOSED
 from backend.adapter import AdapterError
 from backend.command import *
 
@@ -158,11 +159,6 @@ class GUI:
             value = value.lower()
         if isinstance(key, str):
             key = key.lower()
-        if key == self.averaging_check:
-            if value == "on":
-                value = True
-            elif value == "off":
-                value = False
         self._currently_set_values[key] = value
         
     def get_set_value(self, key):
@@ -349,8 +345,7 @@ s :acquire:count #""")
             self.initialize_set_values()
 
         elif event == self.disconnect_button:
-            LeaveCmdModeCmd().do()
-            DisconnectCmd().do()
+            self.invoker.disengage_cmd()
             self.button_activation(True)
             self.add_set_value_key(self.address, 0)
 
@@ -380,12 +375,13 @@ s :acquire:count #""")
         elif event in self.channels_checkboxes:
             if values[event]:
                 self._currently_set_values[self.channels].append(event)
+                TurnOnChannel(event[2:]).do()
             else:
                 self._currently_set_values[self.channels].remove(event)
 
         elif event == self.averaging_check:
             AverageCmd().do(values[self.averaging_check])
-            self.add_set_value_key(self.averaging_check, values[self.averaging_check])   # todo key
+            self.add_set_value_key(self.averaging_check, values[self.averaging_check])
 
         elif event == self.reinterpret_trimmed_data_check:
             pass # todo
@@ -438,7 +434,7 @@ s :acquire:count #""")
         elif event == "Browse":
             self.window[self.curr_path].update(values["Browse"])
 
-        elif event in (sg.WIN_CLOSED):
+        elif event == WIN_CLOSED:
             return False
 
         return True
@@ -451,7 +447,8 @@ s :acquire:count #""")
                 self.update_info()
             except (CommandError, AdapterError) as e:
                 sg.popup(e)
+            except Exception as e:
+                print(e)
 
-        LeaveCmdModeCmd().do()
-        ExitHpctrlCmd().do()
+        self.invoker.disengage_cmd()
         self.window.close()
