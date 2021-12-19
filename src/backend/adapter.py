@@ -61,11 +61,14 @@ class Adapter:
         """
         out_str = ""
         get_started = time.time()
-
-        while not self.out_queue.empty():
+        
+        while True:
+            if out_str and self.out_queue.empty():
+                break
             if time.time() > get_started + timeout:
                 raise AdapterError(f"timeout error: the operation took longer than {timeout} seconds")
-            out_str += self.out_queue.get_nowait()
+            if not self.out_queue.empty():
+                out_str += self.out_queue.get_nowait()
 
         self.clear_input_queue()
         

@@ -84,7 +84,7 @@ loop:
 		exitIfErr(err)
 
 		// simulating delay
-		time.Sleep(time.Microsecond * 800)
+		time.Sleep(time.Millisecond * 200)
 
 		writeToFile(logFile, text)
 
