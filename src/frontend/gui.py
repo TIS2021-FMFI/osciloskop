@@ -1,5 +1,6 @@
 from os import listdir, path as ospath, sep
 import PySimpleGUI as sg
+from PySimpleGUI.PySimpleGUI import WIN_CLOSED
 from backend.adapter import AdapterError
 from backend.command import *
 
@@ -333,8 +334,7 @@ class GUI:
             self.initialize_set_values()
 
         elif event == self.disconnect_button:
-            LeaveCmdModeCmd().do()
-            DisconnectCmd().do()
+            self.invoker.disengage_cmd()
             self.button_activation(True)
             self.add_set_value_key(self.address, 0)
 
@@ -423,7 +423,7 @@ class GUI:
         elif event == "Browse":
             self.window[self.curr_path].update(values["Browse"])
 
-        elif event in (sg.WIN_CLOSED):
+        elif event == WIN_CLOSED:
             return False
 
         return True
@@ -436,7 +436,8 @@ class GUI:
                 self.update_info()
             except (CommandError, AdapterError) as e:
                 sg.popup(e)
+            except Exception as e:
+                print(e)
 
-        LeaveCmdModeCmd().do()
-        ExitHpctrlCmd().do()
+        self.invoker.disengage_cmd()
         self.window.close()

@@ -82,6 +82,10 @@ loop:
 	for {
 		text, err := reader.ReadBytes(endOfLineChar)
 		exitIfErr(err)
+
+		// simulating delay
+		time.Sleep(time.Microsecond * 800)
+
 		writeToFile(logFile, text)
 
 		textString := strings.TrimSpace(strings.ToLower(string(text)))

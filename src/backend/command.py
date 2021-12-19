@@ -226,6 +226,8 @@ class Invoker:
             CustomCmd(f"s :waveform:source channel{i}").do()
             CustomCmd("s :waveform:data?").do()
             data = CustomCmdWithOutput("16").do()
+            # cut the count
+            data = data[:data.rfind("\n")]
             preamble = GetPreambleCmd().do()
             measurements.append(Measurement(preamble, data, i))
         SingleMeasurements(measurements).save_to_disk(path)
@@ -237,6 +239,11 @@ class Invoker:
         SetFormatToWordCmd().do()
         TurnOnRunModeCmd().do()
         PreambleOffCmd().do()
+
+    def disengage_cmd(self):
+        LeaveCmdModeCmd().do()
+        DisconnectCmd().do()
+        ExitHpctrlCmd().do()
 
 
 def channels_to_string(channels):
