@@ -62,7 +62,9 @@ class Adapter:
         out_str = ""
         get_started = time.time()
 
-        while (time.time() < get_started + timeout) and not self.out_queue.empty():
+        while not self.out_queue.empty():
+            if time.time() > get_started + timeout:
+                raise AdapterError(f"timeout error: the operation took longer than {timeout} seconds")
             out_str += self.out_queue.get_nowait()
 
         self.clear_input_queue()

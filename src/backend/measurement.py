@@ -84,7 +84,7 @@ class Measurement:
     def correct_data(self, data):
         _data = []
         for i in data.split():
-            _data.append(int(i) * float(self.preamble.y_increment) * float(self.preamble.y_origin))
+            _data.append(int(i) * float(self.preamble.y_increment) + float(self.preamble.y_origin))
         return _data
 
     def __str__(self):

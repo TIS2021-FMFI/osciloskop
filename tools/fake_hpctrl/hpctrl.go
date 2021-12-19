@@ -109,9 +109,9 @@ loop:
 			data.isAverage = false
 		case cmdGetAverage:
 			if data.isAverage {
-				fmt.Println("ON")
+				fmt.Println("1")
 			} else {
-				fmt.Println("OFF")
+				fmt.Println("0")
 			}
 		case cmdStopContinuousRead:
 			if data.measurementFilePath == "" {

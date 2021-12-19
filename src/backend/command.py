@@ -130,9 +130,7 @@ class AverageCmd(Command):
             self.send_cmd("s :acquire:average off")
 
     def get_set_value(self):
-        # todo real osci returns 0/1, right?
-        # todo if so, change return to int so checkbox can be (un)checked with value returned
-        return self.send_cmd_with_output("q :acquire:average?")
+        return self.send_cmd_with_output("q :acquire:average?") == "1"
 
 
 class ExitHpctrlCmd(Command):
@@ -189,6 +187,13 @@ class StartDataAcquisitionCmd(Command):
 class StopDataAcquisitionCmd(Command):
     def do(self):
         self.send_cmd("?")
+
+class TurnOnChannel(Command):
+    def __init__(self, channel):
+        self.channel = channel
+
+    def do(self):
+        self.send_cmd(f"s :channel{self.channel}:display on")
 
 
 class Invoker:

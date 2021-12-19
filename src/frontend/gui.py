@@ -158,11 +158,6 @@ class GUI:
             value = value.lower()
         if isinstance(key, str):
             key = key.lower()
-        if key == self.averaging_check:
-            if value == "on":
-                value = True
-            elif value == "off":
-                value = False
         self._currently_set_values[key] = value
         
     def get_set_value(self, key):
@@ -369,12 +364,13 @@ class GUI:
         elif event in self.channels_checkboxes:
             if values[event]:
                 self._currently_set_values[self.channels].append(event)
+                TurnOnChannel(event[2:]).do()
             else:
                 self._currently_set_values[self.channels].remove(event)
 
         elif event == self.averaging_check:
             AverageCmd().do(values[self.averaging_check])
-            self.add_set_value_key(self.averaging_check, values[self.averaging_check])   # todo key
+            self.add_set_value_key(self.averaging_check, values[self.averaging_check])
 
         elif event == self.reinterpret_trimmed_data_check:
             pass # todo
