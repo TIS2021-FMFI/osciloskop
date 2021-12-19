@@ -29,6 +29,7 @@ class GUI:
     load_config_button = "Load config"
     config_file_combo = "cfg file"
     reinterpret_trimmed_data_check = "reinterpret trimmed data"
+    is_data_reinterpreted = True
 
     def __init__(self):
         sg.theme("DarkGrey9")
@@ -92,7 +93,7 @@ class GUI:
                         "Reinterpret trimmed data",
                         enable_events=True,
                         key=self.reinterpret_trimmed_data_check,
-                        default=False,
+                        default=True,
                     )
                 ],
                 [sg.Button(self.factory_reset_osci)],
@@ -406,7 +407,8 @@ s :acquire:count #""")
             self.add_set_value_key(self.averaging_check, values[self.averaging_check])
 
         elif event == self.reinterpret_trimmed_data_check:
-            pass # todo
+            self.is_data_reinterpreted = values[self.reinterpret_trimmed_data_check]
+            self.add_set_value_key(self.reinterpret_trimmed_data_check, values[self.reinterpret_trimmed_data_check])
 
         elif event == self.preamble_check:
             if values[self.preamble_check]:
@@ -421,9 +423,9 @@ s :acquire:count #""")
                 self.mismatched_popup(mismatched)
                 return True
             channels = self.get_set_value(self.channels)
-            path = values[self.curr_path].replace("/", sep)
+            path = self.convert_path(values[self.curr_path])
             if channels:
-                self.invoker.single_cmds(channels, path)
+                self.invoker.single_cmds(channels, path, self.is_data_reinterpreted)
             else:
                 sg.popup_no_border("No channels were selected", background_color="maroon")
 
@@ -437,10 +439,11 @@ s :acquire:count #""")
                 sg.popup_no_border("No channels were selected", background_color="maroon")
                 return True
             send_preamble = self.get_set_value(self.preamble_check)
-            temp_file = "assets/measurements/temp.txt"
+            temp_file = self.convert_path("assets/measurements/temp.txt")
             self.invoker.start_run_cmds(temp_file, channels)
             sg.popup_no_border(custom_text="stop", title="Running", keep_on_top=True, background_color="maroon")
-            self.invoker.stop_run_cmds(temp_file, values[self.curr_path], channels, send_preamble)
+            path = self.convert_path(values[self.curr_path])
+            self.invoker.stop_run_cmds(temp_file, path, channels, send_preamble, self.is_data_reinterpreted)
 
         elif event == self.factory_reset_osci:
             reset_message = "reset osci"
@@ -479,3 +482,6 @@ s :acquire:count #""")
 
         self.invoker.disengage_cmd()
         self.window.close()
+
+    def convert_path(self, path):
+        return path.replace("/", sep)

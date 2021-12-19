@@ -76,15 +76,34 @@ Min bandwidth:\t {self.min_bandwidth_limit}"""
 
 
 class Measurement:
-    def __init__(self, preamble, data, channel, reinterpret_trimmed_data=False):
+    def __init__(self, preamble, data, channel, reinterpret_trimmed_data):
         self.preamble = Preamble(preamble)
         self.channel = channel
+        self.reinterpret_trimmed_data = reinterpret_trimmed_data
+        self.clipped_high = 32256
+        self.clipped_low = 31744
+        self.max_valid = 30720
+        self.min_valid = -32736
+        self.hole = 31232
+        self.hole_corrected = "HOLE"
         self.data = self.correct_data(data)
 
     def correct_data(self, data):
         _data = []
         for i in data.split():
-            _data.append(int(i) * float(self.preamble.y_increment) + float(self.preamble.y_origin))
+            word_value = int(i)
+            if self.reinterpret_trimmed_data:
+                if word_value == self.clipped_high:
+                    word_value = self.max_valid
+                elif word_value == self.clipped_low:
+                    word_value = self.min_valid
+                elif word_value == self.hole:
+                    word_value == self.hole_corrected
+            if word_value != self.hole_corrected:
+                word_value = word_value * float(self.preamble.y_increment) + float(
+                    self.preamble.y_origin
+                )
+            _data.append(word_value)
         return _data
 
     def __str__(self):
@@ -137,7 +156,7 @@ class SingleMeasurements(Measurements):
 
 
 class MultipleMeasurementsNoPreambles(Measurements):
-    def __init__(self, file_path, preamble, channels):
+    def __init__(self, file_path, preamble, channels, reinterpret_trimmed_data):
         """
         channels should be string, e.g. "23"
         """
@@ -145,6 +164,7 @@ class MultipleMeasurementsNoPreambles(Measurements):
         self.preamble = preamble
         self.channels = channels
         self.measurements = self.parse_file()
+        self.reinterpret_trimmed_data = reinterpret_trimmed_data
 
     def parse_file(self):
         measurements = []
@@ -153,7 +173,10 @@ class MultipleMeasurementsNoPreambles(Measurements):
             for i, line in enumerate(f):
                 ms, data = self.get_ms_and_data(line)
                 measurement = Measurement(
-                    self.preamble, data, self.channels[i % len(self.channels)]
+                    self.preamble,
+                    data,
+                    self.channels[i % len(self.channels)],
+                    self.reinterpret_trimmed_data,
                 )
                 measurement.append_ms_to_preamble(ms)
                 measurements.append(measurement)
@@ -162,13 +185,14 @@ class MultipleMeasurementsNoPreambles(Measurements):
 
 
 class MultipleMeasurementsWithPreambles(Measurements):
-    def __init__(self, file_path, channels):
+    def __init__(self, file_path, channels, reinterpret_trimmed_data):
         """
         channels should be string, e.g. "23"
         """
         self.file_path = file_path
         self.channels = channels
         self.measurements = self.parse_file()
+        self.reinterpret_trimmed_data = reinterpret_trimmed_data
 
     def parse_file(self):
         measurements = []
@@ -178,10 +202,12 @@ class MultipleMeasurementsWithPreambles(Measurements):
             channel_index = 0
             for i, line in enumerate(f):
                 if i % 2 == 0:
-                    preamble = line[:-1]
+                    preamble = line.strip()
                 else:
                     ms, data = self.get_ms_and_data(line)
-                    measurement = Measurement(preamble, data, self.channels[channel_index])
+                    measurement = Measurement(
+                        preamble, data, self.channels[channel_index], self.reinterpret_trimmed_data
+                    )
                     measurement.append_ms_to_preamble(ms)
                     measurements.append(measurement)
                     if channel_index > len(self.channels) - 2:

@@ -205,21 +205,21 @@ class Invoker:
         CustomCmd(channels_to_string(channels)).do()
         StartDataAcquisitionCmd().do()
 
-    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble):
+    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble, reinterpret_trimmed_data):
         StopDataAcquisitionCmd().do()
         chans = channels_to_string(channels)
         if is_preamble:
-            MultipleMeasurementsWithPreambles(file_with_data, chans).save_to_disk(
+            MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
                 folder_to_store_measurements
             )
         else:
             preamble = GetPreambleCmd().do()
-            MultipleMeasurementsNoPreambles(file_with_data, preamble, chans).save_to_disk(
+            MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
                 folder_to_store_measurements
             )
         os.remove(file_with_data)
 
-    def single_cmds(self, channels, path):
+    def single_cmds(self, channels, path, reinterpret_trimmed_data):
         CustomCmd("s single").do()
         measurements = []
         for i in channels_to_string(channels):
@@ -229,7 +229,7 @@ class Invoker:
             # cut the count
             data = data[:data.rfind("\n")]
             preamble = GetPreambleCmd().do()
-            measurements.append(Measurement(preamble, data, i))
+            measurements.append(Measurement(preamble, data, i, reinterpret_trimmed_data))
         SingleMeasurements(measurements).save_to_disk(path)
         TurnOnRunModeCmd().do()
 
