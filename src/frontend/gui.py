@@ -27,8 +27,9 @@ class GUI:
     set_points_button = "set points"
     run_button = "RUN"
     single_button = "SINGLE"
-    new_config_button = "New config"
-    load_config_button = "Load config"
+    new_config_button = "New cfg"
+    edit_config_button = "Edit cfg"
+    load_config_button = "Load cfg"
     curr_path = "curr path"
     config_file_combo = "cfg file"
     is_data_reinterpreted = True
@@ -140,6 +141,7 @@ class GUI:
             [
                 [
                     sg.Button(self.new_config_button),
+                    sg.Button(self.edit_config_button),
                     sg.Button(self.load_config_button),
                     sg.Combo(
                         values=config_files,
@@ -187,11 +189,17 @@ class GUI:
         self.set_gui_values_to_set_values()
         self.update_info()
 
-    def open_config_creation(self):
+    def open_config_creation(self, file=None):
         # opens a new window for creating a new configuration file
+        if file:
+            filename = file.split(sep)[-1]
+            cfg_content = open(file).read()
+        else:
+            filename = ""
+            cfg_content = ""
         layout = [
-            [sg.Multiline(key="cfg_input", size=(50, 20))],
-            [sg.Text("Config name:"), sg.InputText(key="cfg_name", size=(20,1))],
+            [sg.Multiline(cfg_content, key="cfg_input", size=(50, 20))],
+            [sg.Text("Config name:"), sg.InputText(filename, key="cfg_name", size=(20,1))],
             [sg.Button("Save"), sg.Button("Discard"), sg.Button("Help")]
         ]
         window = sg.Window("Config", [[sg.Col(layout, element_justification="c")]])
@@ -214,7 +222,7 @@ class GUI:
                     break
             elif event == "Help":
                 sg.popup_no_border("""Write one command per line
-Include 's' or 'q' before a command
+Include 's' before a command
 '#' at the end of a command for a variable input
 \nExample:
 s :acquire:points 20
@@ -265,7 +273,6 @@ s :acquire:count #""")
         if cmd.lower() in self._currently_set_values:
             self.add_set_value_key(cmd, val)
             self.update_info()
-            # self.window.refresh()
 
     def open_config_window(self, file_name):
         layout, button_input_map = self._create_config_layout(file_name)
@@ -384,6 +391,15 @@ s :acquire:count #""")
 
         elif event == self.new_config_button:
             config_content, config_name = self.open_config_creation()
+            self.create_config_file(config_content, config_name)
+            
+        elif event == self.edit_config_button:
+            file_name = values[self.config_file_combo]
+            full_path = ospath.join("assets", "config", file_name)
+            if not ospath.isfile(full_path):
+                sg.popup_no_border("File does not exist", background_color=self.color_red)
+                return True
+            config_content, config_name = self.open_config_creation(file=full_path)
             self.create_config_file(config_content, config_name)
 
         elif event == self.load_config_button:
