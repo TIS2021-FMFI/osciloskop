@@ -135,8 +135,7 @@ class Measurements:
 
         for i in self.measurements:
             file = self.FileName(i.channel)
-            with open(os.path.join(path, str(file)), "w") as f:
-                f.writelines(str(i))
+            open(os.path.join(path, str(file)), "w").write(str(i))
 
     def get_ms_and_data(self, line):
         first_space = line.index(" ")
