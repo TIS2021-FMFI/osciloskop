@@ -6,30 +6,34 @@ from backend.command import *
 class GUI:
 
     WIDTH, HEIGHT = 600, 500
-    # make const of every string that is repeated more than once
-    # todo strings should be osci commands (cuz that's how the keys are named in config window)
-    connect_button = "Connect"
-    disconnect_button = "Disconnect"
-    address = "connect"
-    factory_reset_osci = "Factory reset Oscilloscope"
-    channels = "channels"
-    ping_osci_button = "Ping osci"
+
+    # input values (input fields, checkboxes etc used in info box)
     averaging_check = "s :acquire:average"
     average_pts_input = "s :acquire:count"
-    set_average_pts_button = "set_avg_pts"
     curr_points_input = "s :acquire:points"
-    set_points_button = "set points"
-    curr_path = "curr path"
-    terminal_button = "Terminal"
+    channels_checkboxes = ("ch1", "ch2", "ch3", "ch4")
+    channels = "channels"   # key for a list of currently checked channels
     preamble_check = "preamble"
+    trimmed_check = "reinterpret trimmed data"
+    address = "connect"
+
+    # other elements (buttons, labels, ..)
+    connect_button = "Connect"
+    disconnect_button = "Disconnect"
+    terminal_button = "Terminal"
+    ping_osci_button = "Ping osci"
+    reset_osci_button = "Factory reset oscilloscope"
+    set_average_pts_button = "set avg pts"
+    set_points_button = "set points"
     run_button = "RUN"
     single_button = "SINGLE"
-    channels_checkboxes = ("ch1", "ch2", "ch3", "ch4")
     new_config_button = "New config"
     load_config_button = "Load config"
+    curr_path = "curr path"
     config_file_combo = "cfg file"
-    reinterpret_trimmed_data_check = "reinterpret trimmed data"
     is_data_reinterpreted = True
+    
+    # other stuff
     color_red = "maroon"
     color_green = "dark green"
 
@@ -94,11 +98,11 @@ class GUI:
                     sg.Checkbox(
                         "Reinterpret trimmed data",
                         enable_events=True,
-                        key=self.reinterpret_trimmed_data_check,
+                        key=self.trimmed_check,
                         default=False,
                     )
                 ],
-                [sg.Button(self.factory_reset_osci)],
+                [sg.Button(self.reset_osci_button)],
             ],
             pad=(0, 0),
             size=(left_column_width, 280),
@@ -178,7 +182,7 @@ class GUI:
         self.add_set_value_key(self.curr_points_input, PointsCmd().get_set_value())
         self.add_set_value_key(self.averaging_check, AverageCmd().get_set_value())
         self.add_set_value_key(self.preamble_check, False)
-        self.add_set_value_key(self.reinterpret_trimmed_data_check, True)
+        self.add_set_value_key(self.trimmed_check, True)
 
         self.set_gui_values_to_set_values()
         self.update_info()
@@ -328,10 +332,10 @@ s :acquire:count #""")
                 cmd_in_split = [i.lower().strip() for i in cmd_in.split()]
                 if len(cmd_in_split) < 1:
                     continue
-                if cmd_in_split[0] in ("clr", "cls", "clear"):
+                if cmd_in.lower() in ("clr", "cls", "clear"):
                     window[cmd_output].update("")
                     continue
-                if cmd_in.split()[0] == "q":  # asking for output
+                if cmd_in_split[0] == "q":  # asking for output
                     try:
                         output = CustomCmdWithOutput(cmd_in).do()
                     except AdapterError as e:
@@ -412,9 +416,9 @@ s :acquire:count #""")
             AverageCmd().do(values[self.averaging_check])
             self.add_set_value_key(self.averaging_check, values[self.averaging_check])
 
-        elif event == self.reinterpret_trimmed_data_check:
-            self.is_data_reinterpreted = values[self.reinterpret_trimmed_data_check]
-            self.add_set_value_key(self.reinterpret_trimmed_data_check, self.is_data_reinterpreted)
+        elif event == self.trimmed_check:
+            self.is_data_reinterpreted = values[self.trimmed_check]
+            self.add_set_value_key(self.trimmed_check, self.is_data_reinterpreted)
 
         elif event == self.preamble_check:
             if values[self.preamble_check]:
@@ -451,7 +455,7 @@ s :acquire:count #""")
             path = self.convert_path(values[self.curr_path])
             self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted)
 
-        elif event == self.factory_reset_osci:
+        elif event == self.reset_osci_button:
             reset_message = "reset osci"
             if sg.popup_get_text(f"Type '{reset_message}' to factory reset", keep_on_top=True) == reset_message:
                 FactoryResetCmd().do()
