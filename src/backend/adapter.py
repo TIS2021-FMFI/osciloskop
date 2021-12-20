@@ -96,7 +96,7 @@ class Adapter:
         if self.is_hpctrl_running():
             return
 
-        creation_flag_arg = { "creationflags": 0x08000000 } if os.system == "Windows" else {}
+        creation_flag_arg = { "creationflags": 0x08000000 } if platform.system() == "Windows" else {}
         self.process = subprocess.Popen(
             [self.hpctrl_executable, "-i"],
             stdin=subprocess.PIPE,
