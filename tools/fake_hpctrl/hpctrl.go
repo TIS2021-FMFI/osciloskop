@@ -40,8 +40,9 @@ const (
 )
 
 var (
-	fileWithPon  = filepath.Join("tools", "fake_hpctrl", "pon.txt")
-	fileWithPoff = filepath.Join("tools", "fake_hpctrl", "poff.txt")
+	fileWithPon      = filepath.Join("tools", "fake_hpctrl", "pon.txt")
+	fileWithPoff     = filepath.Join("tools", "fake_hpctrl", "poff.txt")
+	fileWithPoff1000 = filepath.Join("tools", "fake_hpctrl", "poff_1000.txt")
 )
 
 type internalData struct {
@@ -124,7 +125,11 @@ loop:
 			if data.isPreamble {
 				fileWithData = fileWithPon
 			} else {
-				fileWithData = fileWithPoff
+				if data.isAverage {
+					fileWithData = fileWithPoff
+				} else {
+					fileWithData = fileWithPoff1000
+				}
 			}
 			copyFile(data.measurementFilePath, fileWithData)
 		}
