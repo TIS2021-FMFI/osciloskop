@@ -323,6 +323,7 @@ s :acquire:count #""")
                 cmd_in = values[cmd_input]
                 if cmd_in:
                     input_history.insert(1, cmd_in)
+                self.input_ix = 0
                 window[cmd_output].update(value=f">>> {cmd_in}\n", append=True)
                 cmd_in_split = [i.lower().strip() for i in cmd_in.split()]
                 if len(cmd_in_split) < 1:
