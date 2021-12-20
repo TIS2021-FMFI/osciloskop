@@ -264,6 +264,8 @@ class Invoker:
         EnterCmdModeCmd().do()
         SetFormatToWordCmd().do()
         TurnOnRunModeCmd().do()
+        for ch in range(1, 4+1):
+            TurnOffChannel(ch).do()
         PreambleOffCmd().do()
 
     def disengage_cmd(self):
