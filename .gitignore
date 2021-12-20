@@ -6,3 +6,19 @@ _*/
 
 # Ignore log from fake hpctrl
 tools/fake_hpctrl/log
+
+# Ignore my personal TODO
+TODO
+
+# Ignore measurements
+assets/measurements
+
+# Ignore go stuff
+pkg
+
+# Ignore all binaries on PeasantOS except fake hpctrl
+*.exe
+!tools/fake_hpctrl/hpctrl.exe
+
+# Ignore config files
+assets/config
