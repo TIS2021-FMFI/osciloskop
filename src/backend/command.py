@@ -1,3 +1,4 @@
+import threading
 import time
 from backend.adapter import Adapter
 from backend.measurement import *
@@ -217,16 +218,22 @@ class Invoker:
             time.sleep(0.1)
 
         chans = channels_to_string(channels)
-        if is_preamble:
-            MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
-                folder_to_store_measurements
-            )
-        else:
-            preamble = GetPreambleCmd().do()
-            MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
-                folder_to_store_measurements
-            )
-        os.remove(file_with_data)
+
+        def run():
+            if is_preamble:
+                MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
+                    folder_to_store_measurements
+                )
+            else:
+                preamble = GetPreambleCmd().do()
+                MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
+                    folder_to_store_measurements
+                )
+            os.remove(file_with_data)
+
+        thread = threading.Thread(target=run, args=())
+        thread.daemon = True
+        thread.start()
 
     def single_cmds(self, channels, path, reinterpret_trimmed_data):
         CustomCmd("s single").do()
