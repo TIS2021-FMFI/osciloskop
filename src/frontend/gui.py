@@ -423,9 +423,10 @@ s :acquire:count #""")
 
         elif event in self.channels_checkboxes:
             if values[event]:
-                self._currently_set_values[self.channels].append(event)
                 TurnOnChannel(event[2:]).do()
+                self._currently_set_values[self.channels].append(event)
             else:
+                TurnOffChannel(event[2:]).do()
                 self._currently_set_values[self.channels].remove(event)
 
         elif event == self.averaging_check:

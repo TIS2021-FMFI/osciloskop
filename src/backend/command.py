@@ -190,12 +190,21 @@ class StopDataAcquisitionCmd(Command):
     def do(self):
         self.send_cmd("?")
 
+
 class TurnOnChannel(Command):
     def __init__(self, channel):
         self.channel = channel
 
     def do(self):
         self.send_cmd(f"s :channel{self.channel}:display on")
+
+
+class TurnOffChannel(Command):
+    def __init__(self, channel):
+        self.channel = channel
+
+    def do(self):
+        self.send_cmd(f"s :channel{self.channel}:display off")
 
 
 class Invoker:
