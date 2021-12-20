@@ -1,3 +1,4 @@
+import time
 from backend.adapter import Adapter
 from backend.measurement import *
 from abc import ABC, abstractmethod
@@ -207,6 +208,14 @@ class Invoker:
 
     def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble, reinterpret_trimmed_data):
         StopDataAcquisitionCmd().do()
+
+        start = time.time()
+        timeout = 5 # in seconds
+        while not os.path.isfile(file_with_data):
+            if time.time() > start + timeout:
+                raise CommandError("hpctrl didn't create a file with measurements")
+            time.sleep(0.1)
+
         chans = channels_to_string(channels)
         if is_preamble:
             MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
@@ -227,7 +236,7 @@ class Invoker:
             CustomCmd("s :waveform:data?").do()
             data = CustomCmdWithOutput("16").do()
             # cut the count
-            data = data[:data.rfind("\n")]
+            data = data[(data.find("\n")+1):]
             preamble = GetPreambleCmd().do()
             measurements.append(Measurement(preamble, data, i, reinterpret_trimmed_data))
         SingleMeasurements(measurements).save_to_disk(path)

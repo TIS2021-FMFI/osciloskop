@@ -56,7 +56,6 @@ func newInternalData() internalData {
 	res := internalData{}
 	res.acquirePoints = 420
 	res.acquireCount = 69
-	res.isPreamble = true
 	res.isAverage = true
 	return res
 }

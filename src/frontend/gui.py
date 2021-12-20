@@ -95,7 +95,7 @@ class GUI:
                         "Reinterpret trimmed data",
                         enable_events=True,
                         key=self.reinterpret_trimmed_data_check,
-                        default=True,
+                        default=False,
                     )
                 ],
                 [sg.Button(self.factory_reset_osci)],
@@ -178,6 +178,7 @@ class GUI:
         self.add_set_value_key(self.curr_points_input, PointsCmd().get_set_value())
         self.add_set_value_key(self.averaging_check, AverageCmd().get_set_value())
         self.add_set_value_key(self.preamble_check, False)
+        self.add_set_value_key(self.reinterpret_trimmed_data_check, True)
 
         self.set_gui_values_to_set_values()
         self.update_info()
@@ -323,11 +324,13 @@ s :acquire:count #""")
                 if cmd_in:
                     input_history.insert(1, cmd_in)
                 window[cmd_output].update(value=f">>> {cmd_in}\n", append=True)
-                cmd_in = cmd_in.lower()
-                if cmd_in in ("clr", "cls", "clear"):
+                cmd_in_split = [i.lower().strip() for i in cmd_in.split()]
+                if len(cmd_in_split) < 1:
+                    continue
+                if cmd_in_split[0] in ("clr", "cls", "clear"):
                     window[cmd_output].update("")
                     continue
-                if len(cmd_in.split()) > 1 and cmd_in.split()[0] == "q":  # asking for output
+                if cmd_in.split()[0] == "q":  # asking for output
                     try:
                         output = CustomCmdWithOutput(cmd_in).do()
                     except AdapterError as e:
@@ -337,8 +340,8 @@ s :acquire:count #""")
                 else:
                     try:
                         CustomCmd(cmd_in).do()
-                        cmd = " ".join(cmd_in.split()[:-1])
-                        val = cmd_in.split()[-1]
+                        cmd = " ".join(cmd_in_split[:-1])
+                        val = cmd_in_split[-1]
                         if cmd in self._currently_set_values:
                             self.add_set_value_key(cmd, val)
                             self.update_info()
@@ -410,7 +413,7 @@ s :acquire:count #""")
 
         elif event == self.reinterpret_trimmed_data_check:
             self.is_data_reinterpreted = values[self.reinterpret_trimmed_data_check]
-            self.add_set_value_key(self.reinterpret_trimmed_data_check, values[self.reinterpret_trimmed_data_check])
+            self.add_set_value_key(self.reinterpret_trimmed_data_check, self.is_data_reinterpreted)
 
         elif event == self.preamble_check:
             if values[self.preamble_check]:
@@ -440,12 +443,12 @@ s :acquire:count #""")
             if not channels:
                 sg.popup_no_border("No channels were selected", background_color=self.color_red)
                 return True
-            send_preamble = self.get_set_value(self.preamble_check)
+            is_preamble = self.get_set_value(self.preamble_check)
             temp_file = self.convert_path("assets/measurements/temp.txt")
             self.invoker.start_run_cmds(temp_file, channels)
-            sg.popup_no_border(custom_text="stop", title="Running", keep_on_top=True, background_color=self.color_red)
+            sg.popup_no_border("stop", title="Running", keep_on_top=True, background_color=self.color_red)
             path = self.convert_path(values[self.curr_path])
-            self.invoker.stop_run_cmds(temp_file, path, channels, send_preamble, self.is_data_reinterpreted)
+            self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted)
 
         elif event == self.factory_reset_osci:
             reset_message = "reset osci"

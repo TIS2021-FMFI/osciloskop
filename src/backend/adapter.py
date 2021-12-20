@@ -69,6 +69,7 @@ class Adapter:
                 raise AdapterError(f"timeout error: the operation took longer than {timeout} seconds")
             if not self.out_queue.empty():
                 out_str += self.out_queue.get_nowait()
+                time.sleep(0.0001)
 
         self.clear_input_queue()
         

@@ -98,7 +98,7 @@ class Measurement:
                 elif word_value == self.clipped_low:
                     word_value = self.min_valid
                 elif word_value == self.hole:
-                    word_value == self.hole_corrected
+                    word_value = self.hole_corrected
             if word_value != self.hole_corrected:
                 word_value = word_value * float(self.preamble.y_increment) + float(
                     self.preamble.y_origin
@@ -163,8 +163,8 @@ class MultipleMeasurementsNoPreambles(Measurements):
         self.file_path = file_path
         self.preamble = preamble
         self.channels = channels
-        self.measurements = self.parse_file()
         self.reinterpret_trimmed_data = reinterpret_trimmed_data
+        self.measurements = self.parse_file()
 
     def parse_file(self):
         measurements = []
@@ -191,8 +191,8 @@ class MultipleMeasurementsWithPreambles(Measurements):
         """
         self.file_path = file_path
         self.channels = channels
-        self.measurements = self.parse_file()
         self.reinterpret_trimmed_data = reinterpret_trimmed_data
+        self.measurements = self.parse_file()
 
     def parse_file(self):
         measurements = []
