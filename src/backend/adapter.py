@@ -96,14 +96,13 @@ class Adapter:
         if self.is_hpctrl_running():
             return
 
-        creation_flag_arg = { "creationflags": 0x08000000 } if platform.system() == "Windows" else {}
         self.process = subprocess.Popen(
             [self.hpctrl_executable, "-i"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True,
-            *creation_flag_arg
+            creationflags=0x08000000 if platform.system() == "Windows" else 0
         )
 
         self.out_queue = queue.Queue()
