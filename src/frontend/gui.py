@@ -1,4 +1,5 @@
 from os import listdir, path as ospath, sep
+import platform
 import PySimpleGUI as sg
 from backend.adapter import AdapterError
 from backend.command import *
@@ -6,6 +7,8 @@ from backend.command import *
 class GUI:
 
     WIDTH, HEIGHT = 600, 500
+    if platform.system() != "Windows":
+        WIDTH = 700
 
     # input values (input fields, checkboxes etc used in info box)
     averaging_check = "s :acquire:average"
@@ -200,16 +203,16 @@ class GUI:
         layout = [
             [sg.Multiline(cfg_content, key="cfg_input", size=(50, 20))],
             [sg.Text("Config name:"), sg.InputText(filename, key="cfg_name", size=(20,1))],
-            [sg.Button("Save"), sg.Button("Discard"), sg.Button("Help")]
+            [sg.Button("Save"), sg.Button("Discard changes"), sg.Button("Help")]
         ]
         window = sg.Window("Config", [[sg.Col(layout, element_justification="c")]])
         config_content = ""
         config_name = ""
         while True:
             event, values = window.read()
-            if event == "Discard":
+            if event == "Discard changes":
                 if values["cfg_input"]: # ask only if nothing is written
-                    ans = sg.popup_yes_no("Are you sure you want to discard the current config?")
+                    ans = sg.popup_yes_no("Are you sure you want to discard current changes?")
                     if ans == "No":
                         continue
                 break
@@ -244,6 +247,8 @@ s :acquire:count #""")
         txt_size=(30, 1)
         lines = [line.strip() for line in open(file_name).readlines()]
         for line in lines:
+            if not line:
+                continue
             input_key = None
             cmd, has_input = parse_line(line)
             rows.append([sg.Text(cmd, size=txt_size), sg.Button("Set", key=cmd)])
@@ -266,13 +271,14 @@ s :acquire:count #""")
             val = values[input_key]
         else:
             cmd, val = " ".join(cmd.split()[:-1]), cmd.split()[-1]
-        if val == "":
+        if not val:
             sg.popup_no_border(f"No value in {cmd}", background_color=self.color_red)
             return
+        if not cmd:
+            cmd, val = val, cmd
         CustomCmd(f"{cmd} {val}").do()
-        if cmd.lower() in self._currently_set_values:
-            self.add_set_value_key(cmd, val)
-            self.update_info()
+        self.add_set_value_key(cmd, val)
+        self.update_info()
 
     def open_config_window(self, file_name):
         layout, button_input_map = self._create_config_layout(file_name)
@@ -290,14 +296,14 @@ s :acquire:count #""")
 
     def create_config_file(self, config_content, file_name):
         if config_content:
-            open(ospath.join("assets", "config", f"{file_name}.txt"), "w").write(config_content)
+            open(ospath.join("assets", "config", file_name), "w").write(config_content)
         self.window[self.config_file_combo].update(
-            values=[f for f in listdir(ospath.join("assets", "config")) if f.endswith(".txt")]
+            values=[f for f in listdir(ospath.join("assets", "config"))]
         )
 
     def update_info(self):
         info_content = [
-            f"{key} = {value}" for key, value in self._currently_set_values.items() if value
+            f"{key} = {value}" if value else key for key, value in self._currently_set_values.items()
         ]
         self.window["info"].update("\n".join(info_content))
 
