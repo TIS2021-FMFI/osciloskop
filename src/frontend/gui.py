@@ -4,6 +4,7 @@ import PySimpleGUI as sg
 from backend.adapter import AdapterError
 from backend.command import *
 from frontend.custom_config import CustomConfig
+from frontend.terminal import Terminal
 
 class GUI:
 
@@ -47,6 +48,7 @@ class GUI:
         sg.set_options(icon="assets/icon/icon.ico")
         self.invoker = Invoker()
         self.custom_config = CustomConfig(self)
+        self.terminal = Terminal(self)
         self._currently_set_values = {self.channels: []}
         self.layout = self._create_layout()
         self.window = sg.Window(
@@ -203,65 +205,6 @@ class GUI:
     def button_activation(self, disable):
         for button in self.single_button, self.run_button:
             self.window[button].update(disabled=disable)
-
-    def open_terminal_window(self):
-        
-        self.input_ix = 0
-        input_history = [""]
-        def get_prev_input(self, event):
-            if self.input_ix < len(input_history) - 1:
-                self.input_ix += 1
-            window[cmd_input].update(input_history[self.input_ix])
-            
-        def get_next_input(self, event):
-            if self.input_ix > 0:
-                self.input_ix -= 1
-            window[cmd_input].update(input_history[self.input_ix])
-
-        cmd_input, cmd_output, cmd_send = "cin", "cout", "csend"
-        layout = [
-            [sg.InputText(key=cmd_input, size=(50, 20)), sg.Button("Send", key=cmd_send, bind_return_key=True)],
-            [sg.Multiline(key=cmd_output, disabled=True, size=(60, 450), autoscroll=True)],
-        ]
-        window = sg.Window("Terminal", layout, size=(450, 500), finalize=True)
-        window[cmd_input].Widget.bind("<Up>", lambda e: get_prev_input(self, e))
-        window[cmd_input].Widget.bind("<Down>", lambda e: get_next_input(self, e))
-        while True:
-            event, values = window.read()
-            if event == cmd_send:
-                window[cmd_input].update("")
-                cmd_in = values[cmd_input]
-                if cmd_in:
-                    input_history.insert(1, cmd_in)
-                self.input_ix = 0
-                window[cmd_output].update(value=f">>> {cmd_in}\n", append=True)
-                cmd_in_split = [i.lower().strip() for i in cmd_in.split()]
-                if len(cmd_in_split) < 1:
-                    continue
-                if cmd_in.lower() in ("clr", "cls", "clear"):
-                    window[cmd_output].update("")
-                    continue
-                if cmd_in_split[0] == "q":  # asking for output
-                    try:
-                        output = CustomCmdWithOutput(cmd_in).do()
-                    except AdapterError as e:
-                        sg.popup_no_border(e, background_color=self.color_red)
-                        continue
-                    window[cmd_output].update(value=output + "\n", append=True)
-                else:
-                    try:
-                        CustomCmd(cmd_in).do()
-                        cmd = " ".join(cmd_in_split[:-1])
-                        val = cmd_in_split[-1]
-                        if cmd in self._currently_set_values:
-                            self.add_set_value_key(cmd, val)
-                            self.update_info()
-                    except AdapterError as e:
-                        sg.popup_no_border(e, background_color=self.color_red)
-
-            elif event in (sg.WIN_CLOSED, "Close"):
-                break
-        window.close()
         
     def get_mismatched_inputboxes(self, values):
         return "".join(
@@ -385,7 +328,7 @@ class GUI:
                 sg.popup_no_border("couldn't ping", background_color=self.color_red)
 
         elif event == self.terminal_button:
-            self.open_terminal_window()
+            self.terminal.open_window()
             
         elif event == "Browse":
             self.window[self.curr_path].update(values["Browse"])
