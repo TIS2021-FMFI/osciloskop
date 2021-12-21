@@ -71,7 +71,7 @@ Y units:\t {self.y_units}
 Max bandwidth:\t {self.max_bandwidth_limit}
 Min bandwidth:\t {self.min_bandwidth_limit}"""
         if self.milliseconds:
-            res += f"\nNumber of milliseconds from first measurement:\t {self.milliseconds}"
+            res += f"\nNumber of microseconds from the first measurement:\t {self.milliseconds}"
         res += "\n"
         return res
 
