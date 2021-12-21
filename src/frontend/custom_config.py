@@ -70,8 +70,7 @@ s :acquire:count #"""
             rows.append([sg.Text(cmd, size=txt_size), sg.Button("Set", key=cmd)])
             if has_input:  # hashtag in line, add input element
                 input_key = f"input {len(rows)-1}"
-                # input_default = self.get_set_value(cmd) if cmd.lower() in self._currently_set_values else ""
-                input_default = None
+                input_default = self.gui.get_set_value(cmd) if cmd.lower() in self.gui._currently_set_values else ""
                 rows[-1].insert(1, sg.InputText(input_default, size=(10, 1), key=input_key))
             buttons[cmd] = input_key
         rows.append([sg.Button("Set all"), sg.Button("Close")])

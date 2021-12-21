@@ -1,5 +1,5 @@
 set value a
 f
 set thing #
-set more # things # #
-set time ? and thing #
+set thing in the # middle 
+set time ?
