@@ -276,6 +276,8 @@ s :acquire:count #""")
             return
         if not cmd:
             cmd, val = val, cmd
+        if not val:
+            val = "set"
         CustomCmd(f"{cmd} {val}").do()
         self.add_set_value_key(cmd, val)
         self.update_info()
@@ -303,7 +305,7 @@ s :acquire:count #""")
 
     def update_info(self):
         info_content = [
-            f"{key} = {value}" if value else key for key, value in self._currently_set_values.items()
+            f"{key} = {value}" for key, value in self._currently_set_values.items() if value
         ]
         self.window["info"].update("\n".join(info_content))
 
