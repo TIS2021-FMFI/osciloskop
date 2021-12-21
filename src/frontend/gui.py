@@ -3,6 +3,7 @@ import platform
 import PySimpleGUI as sg
 from backend.adapter import AdapterError
 from backend.command import *
+from frontend.custom_config import CustomConfig
 
 class GUI:
 
@@ -45,6 +46,7 @@ class GUI:
         sg.theme("DarkGrey9")
         sg.set_options(icon="assets/icon/icon.ico")
         self.invoker = Invoker()
+        self.custom_config = CustomConfig(self)
         self._currently_set_values = {self.channels: []}
         self.layout = self._create_layout()
         self.window = sg.Window(
@@ -192,117 +194,6 @@ class GUI:
         self.set_gui_values_to_set_values()
         self.update_info()
 
-    def open_config_creation(self, file=None):
-        # opens a new window for creating a new configuration file
-        if file:
-            filename = file.split(sep)[-1]
-            cfg_content = open(file).read()
-        else:
-            filename = ""
-            cfg_content = ""
-        layout = [
-            [sg.Multiline(cfg_content, key="cfg_input", size=(50, 20))],
-            [sg.Text("Config name:"), sg.InputText(filename, key="cfg_name", size=(20,1))],
-            [sg.Button("Save"), sg.Button("Discard changes"), sg.Button("Help")]
-        ]
-        window = sg.Window("Config", [[sg.Col(layout, element_justification="c")]])
-        config_content = ""
-        config_name = ""
-        while True:
-            event, values = window.read()
-            if event == "Discard changes":
-                if values["cfg_input"]: # ask only if nothing is written
-                    ans = sg.popup_yes_no("Are you sure you want to discard current changes?")
-                    if ans == "No":
-                        continue
-                break
-            elif event == "Save":
-                if not values["cfg_name"]:
-                    sg.popup_no_border("Config name is empty", background_color=self.color_red)
-                else:
-                    config_content = values["cfg_input"]
-                    config_name = values["cfg_name"]
-                    break
-            elif event == "Help":
-                sg.popup_no_border("""Write one command per line
-Include 's' before a command
-'#' at the end of a command for a variable input
-\nExample:
-s :acquire:points 20
-s :acquire:count #""")
-            elif event == sg.WIN_CLOSED:
-                break
-        window.close()
-        return (config_content, config_name)
-
-    def _create_config_layout(self, file_name):
-        
-        def parse_line(line):
-            if "#" in line:
-                return " ".join(line.split()[:-1]), True
-            return line, False
-            
-        rows = []  # layout rows
-        buttons = {}  # command: <input> (None if no input #)
-        txt_size=(30, 1)
-        lines = [line.strip() for line in open(file_name).readlines()]
-        for line in lines:
-            if not line:
-                continue
-            input_key = None
-            cmd, has_input = parse_line(line)
-            rows.append([sg.Text(cmd, size=txt_size), sg.Button("Set", key=cmd)])
-            if has_input:   # hashtag in line, add input element
-                input_key = f"input {len(rows)-1}"
-                input_default = self.get_set_value(cmd) if cmd.lower() in self._currently_set_values else ""
-                rows[-1].insert(1, sg.InputText(input_default, size=(10, 1), key=input_key))
-            buttons[cmd] = input_key
-        rows.append([sg.Button("Set all"), sg.Button("Close")])
-        column_height = 500
-        scroll = True
-        rows_height = len(rows) * 35
-        if rows_height < 500:
-            column_height = rows_height
-            scroll = False
-        return (sg.Column(rows, scrollable=scroll, vertical_scroll_only=True, size=(400, column_height)), buttons)
-
-    def _run_config_command(self, values, cmd, input_key):
-        if input_key is not None:
-            val = values[input_key]
-        else:
-            cmd, val = " ".join(cmd.split()[:-1]), cmd.split()[-1]
-        if not val:
-            sg.popup_no_border(f"No value in {cmd}", background_color=self.color_red)
-            return
-        if not cmd:
-            cmd, val = val, cmd
-        if not val:
-            val = "set"
-        CustomCmd(f"{cmd} {val}").do()
-        self.add_set_value_key(cmd, val)
-        self.update_info()
-
-    def open_config_window(self, file_name):
-        layout, button_input_map = self._create_config_layout(file_name)
-        window = sg.Window("Run config", [[layout]])
-        while True: # button key - button_input_map.key (command), input key - button_input_map[command]
-            event, values = window.read()
-            if event == "Set all":
-                for cmd, input_key in button_input_map.items():
-                    self._run_config_command(values, cmd, input_key)
-            elif event in button_input_map.keys():
-                self._run_config_command(values, event, button_input_map[event])
-            elif event in (sg.WIN_CLOSED, "Close"):
-                break
-        window.close()
-
-    def create_config_file(self, config_content, file_name):
-        if config_content:
-            open(ospath.join("assets", "config", file_name), "w").write(config_content)
-        self.window[self.config_file_combo].update(
-            values=[f for f in listdir(ospath.join("assets", "config"))]
-        )
-
     def update_info(self):
         info_content = [
             f"{key} = {value}" for key, value in self._currently_set_values.items() if value
@@ -398,8 +289,8 @@ s :acquire:count #""")
             self.add_set_value_key(self.address, 0)
 
         elif event == self.new_config_button:
-            config_content, config_name = self.open_config_creation()
-            self.create_config_file(config_content, config_name)
+            config_content, config_name = self.custom_config.open_creation()
+            self.custom_config.create_file(config_content, config_name, self.window)
             
         elif event == self.edit_config_button:
             file_name = values[self.config_file_combo]
@@ -407,8 +298,8 @@ s :acquire:count #""")
             if not ospath.isfile(full_path):
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
-            config_content, config_name = self.open_config_creation(file=full_path)
-            self.create_config_file(config_content, config_name)
+            config_content, config_name = self.custom_config.open_creation(file=full_path)
+            self.custom_config.create_file(config_content, config_name, self.window)
 
         elif event == self.load_config_button:
             file_name = values[self.config_file_combo]
@@ -417,7 +308,7 @@ s :acquire:count #""")
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
             if file_name:
-                self.open_config_window(full_path)
+                self.custom_config.open_window(full_path)
             else:
                 sg.popup_no_border("File not chosen", background_color=self.color_red)
 
