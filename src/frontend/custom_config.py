@@ -1,5 +1,6 @@
 from os import listdir, path as ospath, sep
 import PySimpleGUI as sg
+import re
 from backend.command import *
 
 
@@ -53,26 +54,32 @@ s :acquire:count #"""
         return (config_content, config_name)
 
     def _create_layout(self, file_name):
-        def parse_line(line):
-            if "#" in line:
-                return " ".join(line.split()[:-1]), True
-            return line, False
 
-        rows = []  # layout rows
-        buttons = {}  # command: <input> (None if no input #)
-        txt_size = (30, 1)
+        input_char = "#"
+        unit_char = "?"
+        rows = []
+        buttons = {}  # button_key: [key1, key2, key3, ..]
+        txt_size=(30, 1)
         lines = [line.strip() for line in open(file_name).readlines()]
-        for line in lines:
-            if not line:
-                continue
-            input_key = None
-            cmd, has_input = parse_line(line)
-            rows.append([sg.Text(cmd, size=txt_size), sg.Button("Set", key=cmd)])
-            if has_input:  # hashtag in line, add input element
-                input_key = f"input {len(rows)-1}"
-                input_default = self.gui.get_set_value(cmd) if cmd.lower() in self.gui._currently_set_values else ""
-                rows[-1].insert(1, sg.InputText(input_default, size=(10, 1), key=input_key))
-            buttons[cmd] = input_key
+        for i, line in enumerate(lines):
+            split_by_special = re.split(f"(\\{input_char}|\\{unit_char})", line)
+            curr_row = []
+            buttons[i] = []
+            for j, x in enumerate(split_by_special):
+                x = x.strip()
+                curr_key = f"{i}/{j}"
+                if x == input_char:
+                    curr_row.append(sg.InputText("", size=(10, 1), key=curr_key))
+                elif x == unit_char:
+                    curr_row.append(
+                        sg.Combo(values=["s", "ms", "µs", "ns", "ps"], default_value="ms", key=curr_key)
+                    )
+                else:
+                    # todo idk how to read sg.Text, prolly window[text]? for now it's input
+                    curr_row.append(sg.InputText(x, size=(10, 1), key=curr_key))
+                buttons[i].append(curr_key)
+            curr_row.append(sg.Button("Set", key=i))
+            rows.append(list(curr_row))
         rows.append([sg.Button("Set all"), sg.Button("Close")])
         column_height = 500
         scroll = True
@@ -80,37 +87,41 @@ s :acquire:count #"""
         if rows_height < 500:
             column_height = rows_height
             scroll = False
-        return (
-            sg.Column(rows, scrollable=scroll, vertical_scroll_only=True, size=(400, column_height)),
-            buttons,
-        )
+        return (sg.Column(rows, scrollable=scroll, vertical_scroll_only=True, size=(400, column_height)), buttons)
 
-    def _run_command(self, values, cmd, input_key):
-        if input_key is not None:
-            val = values[input_key]
-        else:
-            cmd, val = " ".join(cmd.split()[:-1]), cmd.split()[-1]
-        if not val:
-            sg.popup_no_border(f"No value in {cmd}", background_color=self.gui.color_red)
+    def _run_command(self, values):
+        if "" in values:
+            sg.Popup("Something is empty")
             return
-        if not cmd:
-            cmd, val = val, cmd
-        if not val:
-            val = "set"
-        CustomCmd(f"{cmd} {val}").do()
-        self.gui.add_set_value_key(cmd, val)
-        self.gui.update_info()
+        command = " ".join(values)
+        print(command)
+        # CustomCmd(command).do()
+
+        # if input_key is not None:
+        #     val = values[input_key]
+        # else:
+        #     cmd, val = " ".join(cmd.split()[:-1]), cmd.split()[-1]
+        # if not val:
+        #     sg.popup_no_border(f"No value in {cmd}", background_color=self.color_red)
+        #     return
+        # if not cmd:
+        #     cmd, val = val, cmd
+        # if not val:
+        #     val = "set"
+        # self.add_set_value_key(cmd, val)
+        # self.update_info()
+
 
     def open_window(self, file_name):
         layout, button_input_map = self._create_layout(file_name)
         window = sg.Window("Run config", [[layout]])
-        while True:  # button key - button_input_map.key (command), input key - button_input_map[command]
+        while True: # button key - button_input_map.key (command), input key - button_input_map[command]
             event, values = window.read()
             if event == "Set all":
-                for cmd, input_key in button_input_map.items():
-                    self._run_command(values, cmd, input_key)
+                for keys in button_input_map.values():
+                    self._run_command([values[x] for x in keys])
             elif event in button_input_map.keys():
-                self._run_command(values, event, button_input_map[event])
+                self._run_command([values[x] for x in button_input_map[event]])
             elif event in (sg.WIN_CLOSED, "Close"):
                 break
         window.close()
@@ -118,4 +129,6 @@ s :acquire:count #"""
     def create_file(self, config_content, file_name, window):
         if config_content:
             open(ospath.join("assets", "config", file_name), "w").write(config_content)
-            self.gui.window[self.gui.config_file_combo].update(values=[f for f in listdir(ospath.join("assets", "config"))])
+            self.gui.window[self.gui.config_file_combo].update(
+                values=list(listdir(ospath.join("assets", "config")))
+            )
