@@ -58,9 +58,9 @@ class CustomConfig:
                     break
             elif event == "Help":
                 sg.popup_no_border(
-                    """Write one command per line
-'s ' will be automatically included before every command
-use '#' in a command for a variable input
+                    """Write one command per line.
+'s ' will be automatically included before every command.
+Use '#' in a command for a variable input.
 \nExample:
 :example:command 20
 :another:example #"""

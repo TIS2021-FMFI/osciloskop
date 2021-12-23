@@ -55,8 +55,8 @@ type internalData struct {
 
 func newInternalData() internalData {
 	res := internalData{}
-	res.acquirePoints = 420
-	res.acquireCount = 69
+	res.acquirePoints = 100
+	res.acquireCount = 200
 	res.isAverage = true
 	return res
 }

@@ -98,7 +98,7 @@ class PointsCmd(Command):
         self.points = points
 
     def do(self):
-        self.send_cmd(f"s: ACQUIRE:POINTS {self.points}")
+        self.send_cmd(f"s :ACQUIRE:POINTS {self.points}")
 
     def check(self):
         if self.points not in [str(i) for i in range(16, 4097)] and self.points.lower() != "auto":
@@ -113,7 +113,7 @@ class AverageNoCmd(Command):
         self.count = count
 
     def do(self):
-        self.send_cmd(f"s: ACQUIRE:count {self.count}")
+        self.send_cmd(f"s :ACQUIRE:count {self.count}")
 
     def check(self):
         if self.count not in [str(i) for i in range(1, 4097)]:
