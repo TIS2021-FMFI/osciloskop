@@ -1,5 +1,5 @@
 set value a
 f
 set thing #
-set thing in the # middle 
-set time ?
+set thing in the # middle
+set without# space

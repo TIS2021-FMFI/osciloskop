@@ -8,6 +8,14 @@ from frontend.terminal import Terminal
 
 class GUI:
 
+    class IsInCustomConfig():
+        def __init__(self, value):
+            self.value = value
+        def __eq__(self, other):
+            return self.value == other.value
+        def __hash__(self):
+            return hash(self.value)
+
     WIDTH, HEIGHT = 600, 500
     if platform.system() != "Windows":
         WIDTH = 700
@@ -176,6 +184,8 @@ class GUI:
             value = value.lower()
         if isinstance(key, str):
             key = key.lower()
+        elif isinstance(key, self.custom_config.Cmd):
+            key, value = self.IsInCustomConfig(key.key), str(key)
         self._currently_set_values[key] = value
         
     def get_set_value(self, key):
@@ -198,7 +208,9 @@ class GUI:
 
     def update_info(self):
         info_content = [
-            f"{key} = {value}" for key, value in self._currently_set_values.items() if value
+            value if isinstance(key, self.IsInCustomConfig) else f"{key} = {value}"
+            for key, value in self._currently_set_values.items()
+            if value
         ]
         self.window["info"].update("\n".join(info_content))
 
@@ -233,7 +245,7 @@ class GUI:
 
         elif event == self.new_config_button:
             config_content, config_name = self.custom_config.open_creation()
-            self.custom_config.create_file(config_content, config_name, self.window)
+            self.custom_config.create_file(config_content, config_name)
             
         elif event == self.edit_config_button:
             file_name = values[self.config_file_combo]
@@ -242,7 +254,7 @@ class GUI:
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
             config_content, config_name = self.custom_config.open_creation(file=full_path)
-            self.custom_config.create_file(config_content, config_name, self.window)
+            self.custom_config.create_file(config_content, config_name)
 
         elif event == self.load_config_button:
             file_name = values[self.config_file_combo]
@@ -346,8 +358,8 @@ class GUI:
                 self.update_info()
             except (CommandError, AdapterError) as e:
                 sg.popup_no_border(e, background_color=self.color_red)
-            except Exception as e:
-                print(e)
+            # except Exception as e:
+            #     print(e)
 
         self.invoker.disengage_cmd()
         self.window.close()

@@ -1,12 +1,29 @@
 from os import listdir, path as ospath, sep
 import PySimpleGUI as sg
-import re
 from backend.command import *
 
 
 class CustomConfig:
+    # cache[file_name] = []Cmd()
+    cache = {}
+    input_char = "#"
+
     def __init__(self, gui):
         self.gui = gui
+
+    class Cmd:
+        def __init__(self, line, input_char):
+            self.key = line
+            self.edit_key = self.key + "_edit"
+            self.input_from_user = ""
+            self.layout = []
+            self.input_char = input_char
+            self.is_editable = self.input_char in line
+
+        def __str__(self):
+            if self.is_editable:
+                return self.key.replace(self.input_char, self.input_from_user, 1)
+            return self.key
 
     def open_creation(self, file=None):
         # opens a new window for creating a new configuration file
@@ -42,93 +59,89 @@ class CustomConfig:
             elif event == "Help":
                 sg.popup_no_border(
                     """Write one command per line
-Include 's' before a command
-'#' at the end of a command for a variable input
+'s ' will be automatically included before every command
+use '#' in a command for a variable input
 \nExample:
-s :acquire:points 20
-s :acquire:count #"""
+:example:command 20
+:another:example #"""
                 )
             elif event == sg.WIN_CLOSED:
                 break
         window.close()
         return (config_content, config_name)
 
-    def _create_layout(self, file_name):
+    def create_layout(self, file_name):
+        def parse_line(line, edit_key, input_from_user=""):
+            res = []
+            input_size = (10, 1)
+            try:
+                pos = line.index(self.input_char)
+                res.append(sg.Text(line[:pos]))
+                res.append(sg.InputText(input_from_user, size=input_size, key=edit_key))
+                res.append(sg.Text(line[pos + 1 :]))
+            except ValueError:
+                res.append(sg.Text(line))
+            res.append(sg.Button("Set", key=line))
+            return res
 
-        input_char = "#"
-        unit_char = "?"
         rows = []
-        buttons = {}  # button_key: [key1, key2, key3, ..]
-        txt_size=(30, 1)
-        lines = [line.strip() for line in open(file_name).readlines()]
-        for i, line in enumerate(lines):
-            split_by_special = re.split(f"(\\{input_char}|\\{unit_char})", line)
-            curr_row = []
-            buttons[i] = []
-            for j, x in enumerate(split_by_special):
-                x = x.strip()
-                curr_key = f"{i}/{j}"
-                if x == input_char:
-                    curr_row.append(sg.InputText("", size=(10, 1), key=curr_key))
-                elif x == unit_char:
-                    curr_row.append(
-                        sg.Combo(values=["s", "ms", "µs", "ns", "ps"], default_value="ms", key=curr_key)
-                    )
-                else:
-                    # todo idk how to read sg.Text, prolly window[text]? for now it's input
-                    curr_row.append(sg.InputText(x, size=(10, 1), key=curr_key))
-                buttons[i].append(curr_key)
-            curr_row.append(sg.Button("Set", key=i))
-            rows.append(list(curr_row))
+        cmds = []
+
+        # get from cache
+        try:
+            cmds = self.cache[file_name]
+            for cmd in cmds:
+                rows.append(parse_line(cmd.key, cmd.edit_key, cmd.input_from_user))
+        except KeyError:
+            lines = [" ".join(line.split()) for line in open(file_name).readlines()]
+            for line in lines:
+                cmd = self.Cmd(line, self.input_char)
+                cmds.append(cmd)
+                rows.append(parse_line(line, cmd.edit_key))
+            self.cache[file_name] = cmds
+
         rows.append([sg.Button("Set all"), sg.Button("Close")])
+
         column_height = 500
         scroll = True
         rows_height = len(rows) * 35
         if rows_height < 500:
             column_height = rows_height
             scroll = False
-        return (sg.Column(rows, scrollable=scroll, vertical_scroll_only=True, size=(400, column_height)), buttons)
 
-    def _run_command(self, values):
-        if "" in values:
-            sg.Popup("Something is empty")
-            return
-        command = " ".join(values)
-        print(command)
-        # CustomCmd(command).do()
+        return sg.Column(rows, scrollable=scroll, vertical_scroll_only=True, size=(400, column_height))
 
-        # if input_key is not None:
-        #     val = values[input_key]
-        # else:
-        #     cmd, val = " ".join(cmd.split()[:-1]), cmd.split()[-1]
-        # if not val:
-        #     sg.popup_no_border(f"No value in {cmd}", background_color=self.color_red)
-        #     return
-        # if not cmd:
-        #     cmd, val = val, cmd
-        # if not val:
-        #     val = "set"
-        # self.add_set_value_key(cmd, val)
-        # self.update_info()
-
+    def run_command(self, cmd):
+        CustomCmd("s " + str(cmd)).do()
+        self.gui.add_set_value_key(cmd, "")
+        self.gui.update_info()
 
     def open_window(self, file_name):
-        layout, button_input_map = self._create_layout(file_name)
+        layout = self.create_layout(file_name)
+        cmds = self.cache[file_name]
+
         window = sg.Window("Run config", [[layout]])
-        while True: # button key - button_input_map.key (command), input key - button_input_map[command]
+        while True:
             event, values = window.read()
-            if event == "Set all":
-                for keys in button_input_map.values():
-                    self._run_command([values[x] for x in keys])
-            elif event in button_input_map.keys():
-                self._run_command([values[x] for x in button_input_map[event]])
-            elif event in (sg.WIN_CLOSED, "Close"):
+
+            if event in (sg.WIN_CLOSED, "Close"):
                 break
+            else:
+                _cmds = cmds if event == "Set all" else [next(cmd for cmd in cmds if cmd.key == event)]
+                for cmd in _cmds:
+                    if cmd.is_editable:
+                        cmd.input_from_user = values[cmd.edit_key]
+                    self.run_command(cmd)
+
         window.close()
 
-    def create_file(self, config_content, file_name, window):
+    def create_file(self, config_content, file_name):
+        # purge cache
+        try:
+            del self.cache[file_name]
+        except KeyError:
+            pass
+
         if config_content:
             open(ospath.join("assets", "config", file_name), "w").write(config_content)
-            self.gui.window[self.gui.config_file_combo].update(
-                values=list(listdir(ospath.join("assets", "config")))
-            )
+            self.gui.window[self.gui.config_file_combo].update(values=list(listdir(ospath.join("assets", "config"))))
