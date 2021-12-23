@@ -358,8 +358,8 @@ class GUI:
                 self.update_info()
             except (CommandError, AdapterError) as e:
                 sg.popup_no_border(e, background_color=self.color_red)
-            # except Exception as e:
-            #     print(e)
+            except Exception as e:
+                print(e)
 
         self.invoker.disengage_cmd()
         self.window.close()
