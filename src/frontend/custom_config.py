@@ -13,7 +13,7 @@ class CustomConfig:
 
     class Cmd:
         def __init__(self, line, input_char):
-            self.key = line
+            self.key = "s " + line
             self.edit_key = self.key + "_edit"
             self.input_from_user = ""
             self.layout = []
@@ -89,7 +89,7 @@ Use '#' in a command for a variable input.
 
         # get from cache
         try:
-            cmds = self.cache[file_name]
+            cmds = self.cache[os.path.basename(file_name)]
             for cmd in cmds:
                 rows.append(parse_line(cmd.key, cmd.edit_key, cmd.input_from_user))
         except KeyError:
@@ -97,8 +97,8 @@ Use '#' in a command for a variable input.
             for line in lines:
                 cmd = self.Cmd(line, self.input_char)
                 cmds.append(cmd)
-                rows.append(parse_line(line, cmd.edit_key))
-            self.cache[file_name] = cmds
+                rows.append(parse_line(cmd.key, cmd.edit_key))
+            self.cache[os.path.basename(file_name)] = cmds
 
         rows.append([sg.Button("Set all"), sg.Button("Close")])
 
@@ -112,13 +112,13 @@ Use '#' in a command for a variable input.
         return sg.Column(rows, scrollable=scroll, vertical_scroll_only=True, size=(400, column_height))
 
     def run_command(self, cmd):
-        CustomCmd("s " + str(cmd)).do()
+        CustomCmd(str(cmd)).do()
         self.gui.add_set_value_key(cmd, "")
         self.gui.update_info()
 
     def open_window(self, file_name):
         layout = self.create_layout(file_name)
-        cmds = self.cache[file_name]
+        cmds = self.cache[os.path.basename(file_name)]
 
         window = sg.Window("Run config", [[layout]])
         while True:
@@ -130,7 +130,10 @@ Use '#' in a command for a variable input.
                 _cmds = cmds if event == "Set all" else [next(cmd for cmd in cmds if cmd.key == event)]
                 for cmd in _cmds:
                     if cmd.is_editable:
-                        cmd.input_from_user = values[cmd.edit_key]
+                        cmd.input_from_user = values[cmd.edit_key].strip()
+                        if not cmd.input_from_user:
+                            sg.popup_no_border(f"'{str(cmd)}' has no input", background_color=self.gui.color_red)
+                            break
                     self.run_command(cmd)
 
         window.close()
@@ -138,7 +141,7 @@ Use '#' in a command for a variable input.
     def create_file(self, config_content, file_name):
         # purge cache
         try:
-            del self.cache[file_name]
+            del self.cache[os.path.basename(file_name)]
         except KeyError:
             pass
 
