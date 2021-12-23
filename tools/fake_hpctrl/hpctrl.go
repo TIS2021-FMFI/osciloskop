@@ -37,6 +37,7 @@ const (
 	cmdGetAverage         = "q :acquire:average?"
 	cmAverageOn           = "s :acquire:average on"
 	cmAverageOff          = "s :acquire:average off"
+	delayBetweenCommands  = 200 * time.Microsecond
 )
 
 var (
@@ -84,7 +85,7 @@ loop:
 		exitIfErr(err)
 
 		// simulating delay
-		time.Sleep(time.Millisecond * 200)
+		time.Sleep(delayBetweenCommands)
 
 		writeToFile(logFile, text)
 
