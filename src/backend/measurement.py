@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 
 class Preamble:
@@ -70,7 +71,7 @@ Y units:\t {self.y_units}
 Max bandwidth:\t {self.max_bandwidth_limit}
 Min bandwidth:\t {self.min_bandwidth_limit}"""
         if self.milliseconds:
-            res += f"\nNumber of milliseconds from first measurement:\t {self.milliseconds}"
+            res += f"\nNumber of microseconds from the first measurement:\t {self.milliseconds}"
         res += "\n"
         return res
 
@@ -118,19 +119,13 @@ class Measurements:
     measurements = None
 
     class FileName:
-        def __init__(self, measurement):
-            self.date = measurement.preamble.date[1:-1]
-            self.time = measurement.preamble.time[1:-1]
-            self.channel = measurement.channel
-            self.n = 0
+        def __init__(self, channel):
+            self.channel = channel
             self.extension = ".txt"
 
-        def increase_n(self):
-            self.n += 1
-
         def __str__(self):
-            n = "" if self.n == 0 else f"({self.n})"
-            return f"{self.date}_{self.time}_ch{self.channel}{n}{self.extension}".replace(":", "-")
+            now = datetime.now().strftime("%d-%m-%Y_%H-%M-%S-%f")
+            return f"{now}_ch{self.channel}{self.extension}"
 
     def save_to_disk(self, path):
         try:
@@ -139,11 +134,8 @@ class Measurements:
             pass
 
         for i in self.measurements:
-            file = self.FileName(i)
-            while os.path.isfile(os.path.join(path, str(file))):
-                file.increase_n()
-            with open(os.path.join(path, str(file)), "w") as f:
-                f.writelines(str(i))
+            file = self.FileName(i.channel)
+            open(os.path.join(path, str(file)), "w").write(str(i))
 
     def get_ms_and_data(self, line):
         first_space = line.index(" ")

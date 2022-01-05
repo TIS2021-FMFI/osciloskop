@@ -1,5 +1,5 @@
-ACQUIRE:TYPE average
-WAVEFORM:SOURCE CHANNEL1
-ACQUIRE:COUNT #
-ACQUIRE:POINTS #
-DIGITIZE CHANNEL1
+set value a
+f
+set thing #
+set thing in the # middle
+set without# space

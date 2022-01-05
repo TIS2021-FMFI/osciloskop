@@ -1,35 +1,53 @@
 from os import listdir, path as ospath, sep
+import platform
 import PySimpleGUI as sg
 from backend.adapter import AdapterError
 from backend.command import *
+from frontend.custom_config import CustomConfig
+from frontend.terminal import Terminal
 
 class GUI:
 
+    class IsInCustomConfig():
+        def __init__(self, value):
+            self.value = value
+        def __eq__(self, other):
+            return self.value == other.value
+        def __hash__(self):
+            return hash(self.value)
+
     WIDTH, HEIGHT = 600, 500
-    # make const of every string that is repeated more than once
-    # todo strings should be osci commands (cuz that's how the keys are named in config window)
-    connect_button = "Connect"
-    disconnect_button = "Disconnect"
-    address = "connect"
-    factory_reset_osci = "Factory reset Oscilloscope"
-    channels = "channels"
-    ping_osci_button = "Ping osci"
+    if platform.system() != "Windows":
+        WIDTH = 700
+
+    # input values (input fields, checkboxes etc used in info box)
     averaging_check = "s :acquire:average"
     average_pts_input = "s :acquire:count"
-    set_average_pts_button = "set_avg_pts"
     curr_points_input = "s :acquire:points"
-    set_points_button = "set points"
-    curr_path = "curr path"
-    terminal_button = "Terminal"
+    channels_checkboxes = ("ch1", "ch2", "ch3", "ch4")
+    channels = "channels"   # key for a list of currently checked channels
     preamble_check = "preamble"
+    trimmed_check = "reinterpret trimmed data"
+    address = "connect"
+
+    # other elements (buttons, labels, ..)
+    connect_button = "Connect"
+    disconnect_button = "Disconnect"
+    terminal_button = "Terminal"
+    ping_osci_button = "Ping osci"
+    reset_osci_button = "Factory reset oscilloscope"
+    set_average_pts_button = "set avg pts"
+    set_points_button = "set points"
     run_button = "RUN"
     single_button = "SINGLE"
-    channels_checkboxes = ("ch1", "ch2", "ch3", "ch4")
-    new_config_button = "New config"
-    load_config_button = "Load config"
+    new_config_button = "New cfg"
+    edit_config_button = "Edit cfg"
+    load_config_button = "Load cfg"
+    curr_path = "curr path"
     config_file_combo = "cfg file"
-    reinterpret_trimmed_data_check = "reinterpret trimmed data"
     is_data_reinterpreted = True
+    
+    # other stuff
     color_red = "maroon"
     color_green = "dark green"
 
@@ -37,6 +55,8 @@ class GUI:
         sg.theme("DarkGrey9")
         sg.set_options(icon="assets/icon/icon.ico")
         self.invoker = Invoker()
+        self.custom_config = CustomConfig(self)
+        self.terminal = Terminal(self)
         self._currently_set_values = {self.channels: []}
         self.layout = self._create_layout()
         self.window = sg.Window(
@@ -94,11 +114,11 @@ class GUI:
                     sg.Checkbox(
                         "Reinterpret trimmed data",
                         enable_events=True,
-                        key=self.reinterpret_trimmed_data_check,
+                        key=self.trimmed_check,
                         default=False,
                     )
                 ],
-                [sg.Button(self.factory_reset_osci)],
+                [sg.Button(self.reset_osci_button)],
             ],
             pad=(0, 0),
             size=(left_column_width, 280),
@@ -136,6 +156,7 @@ class GUI:
             [
                 [
                     sg.Button(self.new_config_button),
+                    sg.Button(self.edit_config_button),
                     sg.Button(self.load_config_button),
                     sg.Combo(
                         values=config_files,
@@ -163,6 +184,8 @@ class GUI:
             value = value.lower()
         if isinstance(key, str):
             key = key.lower()
+        elif isinstance(key, self.custom_config.Cmd):
+            key, value = self.IsInCustomConfig(key.key), str(key)
         self._currently_set_values[key] = value
         
     def get_set_value(self, key):
@@ -178,180 +201,22 @@ class GUI:
         self.add_set_value_key(self.curr_points_input, PointsCmd().get_set_value())
         self.add_set_value_key(self.averaging_check, AverageCmd().get_set_value())
         self.add_set_value_key(self.preamble_check, False)
-        self.add_set_value_key(self.reinterpret_trimmed_data_check, True)
+        self.add_set_value_key(self.trimmed_check, True)
 
         self.set_gui_values_to_set_values()
         self.update_info()
 
-    def open_config_creation(self):
-        # opens a new window for creating a new configuration file
-        layout = [
-            [sg.Multiline(key="cfg_input", size=(50, 20))],
-            [sg.Text("Config name:"), sg.InputText(key="cfg_name", size=(20,1))],
-            [sg.Button("Save"), sg.Button("Discard"), sg.Button("Help")]
-        ]
-        window = sg.Window("Config", [[sg.Col(layout, element_justification="c")]])
-        config_content = ""
-        config_name = ""
-        while True:
-            event, values = window.read()
-            if event == "Discard":
-                if values["cfg_input"]: # ask only if nothing is written
-                    ans = sg.popup_yes_no("Are you sure you want to discard the current config?")
-                    if ans == "No":
-                        continue
-                break
-            elif event == "Save":
-                if not values["cfg_name"]:
-                    sg.popup_no_border("Config name is empty", background_color=self.color_red)
-                else:
-                    config_content = values["cfg_input"]
-                    config_name = values["cfg_name"]
-                    break
-            elif event == "Help":
-                sg.popup_no_border("""Write one command per line
-Include 's' or 'q' before a command
-'#' at the end of a command for a variable input
-\nExample:
-s :acquire:points 20
-s :acquire:count #""")
-            elif event == sg.WIN_CLOSED:
-                break
-        window.close()
-        return (config_content, config_name)
-
-    def _create_config_layout(self, file_name):
-        
-        def parse_line(line):
-            if "#" in line:
-                return " ".join(line.split()[:-1]), True
-            return line, False
-            
-        rows = []  # layout rows
-        buttons = {}  # command: <input> (None if no input #)
-        txt_size=(30, 1)
-        lines = [line.strip() for line in open(file_name).readlines()]
-        for line in lines:
-            input_key = None
-            cmd, has_input = parse_line(line)
-            rows.append([sg.Text(cmd, size=txt_size), sg.Button("Set", key=cmd)])
-            if has_input:   # hashtag in line, add input element
-                input_key = f"input {len(rows)-1}"
-                input_default = self.get_set_value(cmd) if cmd.lower() in self._currently_set_values else ""
-                rows[-1].insert(1, sg.InputText(input_default, size=(10, 1), key=input_key))
-            buttons[cmd] = input_key
-        rows.append([sg.Button("Set all"), sg.Button("Close")])
-        column_height = 500
-        scroll = True
-        rows_height = len(rows) * 35
-        if rows_height < 500:
-            column_height = rows_height
-            scroll = False
-        return (sg.Column(rows, scrollable=scroll, vertical_scroll_only=True, size=(400, column_height)), buttons)
-
-    def _run_config_command(self, values, cmd, input_key):
-        if input_key is not None:
-            val = values[input_key]
-        else:
-            cmd, val = " ".join(cmd.split()[:-1]), cmd.split()[-1]
-        if val == "":
-            sg.popup_no_border(f"No value in {cmd}", background_color=self.color_red)
-            return
-        CustomCmd(f"{cmd} {val}").do()
-        if cmd.lower() in self._currently_set_values:
-            self.add_set_value_key(cmd, val)
-            self.update_info()
-            # self.window.refresh()
-
-    def open_config_window(self, file_name):
-        layout, button_input_map = self._create_config_layout(file_name)
-        window = sg.Window("Run config", [[layout]])
-        while True: # button key - button_input_map.key (command), input key - button_input_map[command]
-            event, values = window.read()
-            if event == "Set all":
-                for cmd, input_key in button_input_map.items():
-                    self._run_config_command(values, cmd, input_key)
-            elif event in button_input_map.keys():
-                self._run_config_command(values, event, button_input_map[event])
-            elif event in (sg.WIN_CLOSED, "Close"):
-                break
-        window.close()
-
-    def create_config_file(self, config_content, file_name):
-        if config_content:
-            open(ospath.join("assets", "config", f"{file_name}.txt"), "w").write(config_content)
-        self.window[self.config_file_combo].update(
-            values=[f for f in listdir(ospath.join("assets", "config")) if f.endswith(".txt")]
-        )
-
     def update_info(self):
         info_content = [
-            f"{key} = {value}" for key, value in self._currently_set_values.items() if value
+            value if isinstance(key, self.IsInCustomConfig) else f"{key} = {value}"
+            for key, value in self._currently_set_values.items()
+            if value
         ]
         self.window["info"].update("\n".join(info_content))
 
     def button_activation(self, disable):
         for button in self.single_button, self.run_button:
             self.window[button].update(disabled=disable)
-
-    def open_terminal_window(self):
-        
-        self.input_ix = 0
-        input_history = [""]
-        def get_prev_input(self, event):
-            if self.input_ix < len(input_history) - 1:
-                self.input_ix += 1
-            window[cmd_input].update(input_history[self.input_ix])
-            
-        def get_next_input(self, event):
-            if self.input_ix > 0:
-                self.input_ix -= 1
-            window[cmd_input].update(input_history[self.input_ix])
-
-        cmd_input, cmd_output, cmd_send = "cin", "cout", "csend"
-        layout = [
-            [sg.InputText(key=cmd_input, size=(50, 20)), sg.Button("Send", key=cmd_send, bind_return_key=True)],
-            [sg.Multiline(key=cmd_output, disabled=True, size=(60, 450), autoscroll=True)],
-        ]
-        window = sg.Window("Terminal", layout, size=(450, 500), finalize=True)
-        window[cmd_input].Widget.bind("<Up>", lambda e: get_prev_input(self, e))
-        window[cmd_input].Widget.bind("<Down>", lambda e: get_next_input(self, e))
-        while True:
-            event, values = window.read()
-            if event == cmd_send:
-                window[cmd_input].update("")
-                cmd_in = values[cmd_input]
-                if cmd_in:
-                    input_history.insert(1, cmd_in)
-                self.input_ix = 0
-                window[cmd_output].update(value=f">>> {cmd_in}\n", append=True)
-                cmd_in_split = [i.lower().strip() for i in cmd_in.split()]
-                if len(cmd_in_split) < 1:
-                    continue
-                if cmd_in_split[0] in ("clr", "cls", "clear"):
-                    window[cmd_output].update("")
-                    continue
-                if cmd_in.split()[0] == "q":  # asking for output
-                    try:
-                        output = CustomCmdWithOutput(cmd_in).do()
-                    except AdapterError as e:
-                        sg.popup_no_border(e, background_color=self.color_red)
-                        continue
-                    window[cmd_output].update(value=output + "\n", append=True)
-                else:
-                    try:
-                        CustomCmd(cmd_in).do()
-                        cmd = " ".join(cmd_in_split[:-1])
-                        val = cmd_in_split[-1]
-                        if cmd in self._currently_set_values:
-                            self.add_set_value_key(cmd, val)
-                            self.update_info()
-                    except AdapterError as e:
-                        sg.popup_no_border(e, background_color=self.color_red)
-
-            elif event in (sg.WIN_CLOSED, "Close"):
-                break
-        window.close()
         
     def get_mismatched_inputboxes(self, values):
         return "".join(
@@ -379,8 +244,17 @@ s :acquire:count #""")
             self.add_set_value_key(self.address, 0)
 
         elif event == self.new_config_button:
-            config_content, config_name = self.open_config_creation()
-            self.create_config_file(config_content, config_name)
+            config_content, config_name = self.custom_config.open_creation()
+            self.custom_config.create_file(config_content, config_name)
+            
+        elif event == self.edit_config_button:
+            file_name = values[self.config_file_combo]
+            full_path = ospath.join("assets", "config", file_name)
+            if not ospath.isfile(full_path):
+                sg.popup_no_border("File does not exist", background_color=self.color_red)
+                return True
+            config_content, config_name = self.custom_config.open_creation(file=full_path)
+            self.custom_config.create_file(config_content, config_name)
 
         elif event == self.load_config_button:
             file_name = values[self.config_file_combo]
@@ -389,7 +263,7 @@ s :acquire:count #""")
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
             if file_name:
-                self.open_config_window(full_path)
+                self.custom_config.open_window(full_path)
             else:
                 sg.popup_no_border("File not chosen", background_color=self.color_red)
 
@@ -403,18 +277,19 @@ s :acquire:count #""")
 
         elif event in self.channels_checkboxes:
             if values[event]:
-                self._currently_set_values[self.channels].append(event)
                 TurnOnChannel(event[2:]).do()
+                self._currently_set_values[self.channels].append(event)
             else:
+                TurnOffChannel(event[2:]).do()
                 self._currently_set_values[self.channels].remove(event)
 
         elif event == self.averaging_check:
             AverageCmd().do(values[self.averaging_check])
             self.add_set_value_key(self.averaging_check, values[self.averaging_check])
 
-        elif event == self.reinterpret_trimmed_data_check:
-            self.is_data_reinterpreted = values[self.reinterpret_trimmed_data_check]
-            self.add_set_value_key(self.reinterpret_trimmed_data_check, self.is_data_reinterpreted)
+        elif event == self.trimmed_check:
+            self.is_data_reinterpreted = values[self.trimmed_check]
+            self.add_set_value_key(self.trimmed_check, self.is_data_reinterpreted)
 
         elif event == self.preamble_check:
             if values[self.preamble_check]:
@@ -451,7 +326,7 @@ s :acquire:count #""")
             path = self.convert_path(values[self.curr_path])
             self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted)
 
-        elif event == self.factory_reset_osci:
+        elif event == self.reset_osci_button:
             reset_message = "reset osci"
             if sg.popup_get_text(f"Type '{reset_message}' to factory reset", keep_on_top=True) == reset_message:
                 FactoryResetCmd().do()
@@ -465,7 +340,7 @@ s :acquire:count #""")
                 sg.popup_no_border("couldn't ping", background_color=self.color_red)
 
         elif event == self.terminal_button:
-            self.open_terminal_window()
+            self.terminal.open_window()
             
         elif event == "Browse":
             self.window[self.curr_path].update(values["Browse"])

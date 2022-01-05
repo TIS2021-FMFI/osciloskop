@@ -37,11 +37,13 @@ const (
 	cmdGetAverage         = "q :acquire:average?"
 	cmAverageOn           = "s :acquire:average on"
 	cmAverageOff          = "s :acquire:average off"
+	delayBetweenCommands  = 200 * time.Microsecond
 )
 
 var (
-	fileWithPon  = filepath.Join("tools", "fake_hpctrl", "pon.txt")
-	fileWithPoff = filepath.Join("tools", "fake_hpctrl", "poff.txt")
+	fileWithPon      = filepath.Join("tools", "fake_hpctrl", "pon.txt")
+	fileWithPoff     = filepath.Join("tools", "fake_hpctrl", "poff.txt")
+	fileWithPoff1000 = filepath.Join("tools", "fake_hpctrl", "poff_1000.txt")
 )
 
 type internalData struct {
@@ -54,8 +56,8 @@ type internalData struct {
 
 func newInternalData() internalData {
 	res := internalData{}
-	res.acquirePoints = 420
-	res.acquireCount = 69
+	res.acquirePoints = 100
+	res.acquireCount = 200
 	res.isAverage = true
 	return res
 }
@@ -83,7 +85,7 @@ loop:
 		exitIfErr(err)
 
 		// simulating delay
-		time.Sleep(time.Millisecond * 200)
+		time.Sleep(delayBetweenCommands)
 
 		writeToFile(logFile, text)
 
@@ -124,7 +126,11 @@ loop:
 			if data.isPreamble {
 				fileWithData = fileWithPon
 			} else {
-				fileWithData = fileWithPoff
+				if data.isAverage {
+					fileWithData = fileWithPoff
+				} else {
+					fileWithData = fileWithPoff1000
+				}
 			}
 			copyFile(data.measurementFilePath, fileWithData)
 		}

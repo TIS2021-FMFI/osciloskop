@@ -1,3 +1,4 @@
+import threading
 import time
 from backend.adapter import Adapter
 from backend.measurement import *
@@ -97,7 +98,7 @@ class PointsCmd(Command):
         self.points = points
 
     def do(self):
-        self.send_cmd(f"s: ACQUIRE:POINTS {self.points}")
+        self.send_cmd(f"s :ACQUIRE:POINTS {self.points}")
 
     def check(self):
         if self.points not in [str(i) for i in range(16, 4097)] and self.points.lower() != "auto":
@@ -112,7 +113,7 @@ class AverageNoCmd(Command):
         self.count = count
 
     def do(self):
-        self.send_cmd(f"s: ACQUIRE:count {self.count}")
+        self.send_cmd(f"s :ACQUIRE:count {self.count}")
 
     def check(self):
         if self.count not in [str(i) for i in range(1, 4097)]:
@@ -189,12 +190,21 @@ class StopDataAcquisitionCmd(Command):
     def do(self):
         self.send_cmd("?")
 
+
 class TurnOnChannel(Command):
     def __init__(self, channel):
         self.channel = channel
 
     def do(self):
         self.send_cmd(f"s :channel{self.channel}:display on")
+
+
+class TurnOffChannel(Command):
+    def __init__(self, channel):
+        self.channel = channel
+
+    def do(self):
+        self.send_cmd(f"s :channel{self.channel}:display off")
 
 
 class Invoker:
@@ -217,16 +227,22 @@ class Invoker:
             time.sleep(0.1)
 
         chans = channels_to_string(channels)
-        if is_preamble:
-            MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
-                folder_to_store_measurements
-            )
-        else:
-            preamble = GetPreambleCmd().do()
-            MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
-                folder_to_store_measurements
-            )
-        os.remove(file_with_data)
+
+        def run():
+            if is_preamble:
+                MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
+                    folder_to_store_measurements
+                )
+            else:
+                preamble = GetPreambleCmd().do()
+                MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
+                    folder_to_store_measurements
+                )
+            os.remove(file_with_data)
+
+        thread = threading.Thread(target=run, args=())
+        thread.daemon = True
+        thread.start()
 
     def single_cmds(self, channels, path, reinterpret_trimmed_data):
         CustomCmd("s single").do()
@@ -248,6 +264,8 @@ class Invoker:
         EnterCmdModeCmd().do()
         SetFormatToWordCmd().do()
         TurnOnRunModeCmd().do()
+        for ch in range(1, 4+1):
+            TurnOffChannel(ch).do()
         PreambleOffCmd().do()
 
     def disengage_cmd(self):
