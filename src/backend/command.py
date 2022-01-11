@@ -218,7 +218,7 @@ class GetChannelEnabled(Command):
         self.channel = channel
     
     def do(self):
-        return self.send_cmd_with_output(f"q :channel{self.channel}:display?") in ("1", 0)
+        return self.send_cmd_with_output(f"q :channel{self.channel}:display?") in ("1", 1)
 
 
 class Invoker:
