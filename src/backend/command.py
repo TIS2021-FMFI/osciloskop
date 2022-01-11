@@ -1,7 +1,8 @@
 import threading
 import time
+import os
+import backend.measurement as ms
 from backend.adapter import Adapter
-from backend.measurement import *
 from abc import ABC, abstractmethod
 
 
@@ -11,19 +12,24 @@ class CommandError(Exception):
 class Command(ABC):
 
     @staticmethod
+    @classmethod
+    def check():
+        pass
+
+    @staticmethod
     @abstractmethod
     def do():
         pass
+
+    def check_and_do(self):
+        self.check()
+        self.do()
 
     @staticmethod
     @classmethod
     def get_set_value():
         pass
 
-    def check_and_do(self):
-        self.check()
-        self.do()
-       
     @staticmethod
     def send_cmd(command):
         adapter.send(command)
@@ -207,6 +213,14 @@ class TurnOffChannel(Command):
         self.send_cmd(f"s :channel{self.channel}:display off")
 
 
+class GetChannelEnabled(Command):
+    def __init__(self, channel):
+        self.channel = channel
+    
+    def do(self):
+        return self.send_cmd_with_output(f"q :channel{self.channel}:display?") in ("1", 0)
+
+
 class Invoker:
 
     def start_run_cmds(self, file_to_store_data_from_hpctrl, channels):
@@ -230,12 +244,12 @@ class Invoker:
 
         def run():
             if is_preamble:
-                MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
+                ms.MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
                     folder_to_store_measurements
                 )
             else:
                 preamble = GetPreambleCmd().do()
-                MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
+                ms.MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
                     folder_to_store_measurements
                 )
             os.remove(file_with_data)
@@ -254,8 +268,8 @@ class Invoker:
             # cut the count
             data = data[(data.find("\n")+1):]
             preamble = GetPreambleCmd().do()
-            measurements.append(Measurement(preamble, data, i, reinterpret_trimmed_data))
-        SingleMeasurements(measurements).save_to_disk(path)
+            measurements.append(ms.Measurement(preamble, data, i, reinterpret_trimmed_data))
+        ms.SingleMeasurements(measurements).save_to_disk(path)
         TurnOnRunModeCmd().do()
 
     def initialize_cmds(self, address):
@@ -264,8 +278,8 @@ class Invoker:
         EnterCmdModeCmd().do()
         SetFormatToWordCmd().do()
         TurnOnRunModeCmd().do()
-        for ch in range(1, 4+1):
-            TurnOffChannel(ch).do()
+        for channel in range(1, 4+1):
+            TurnOffChannel(channel).do()
         PreambleOffCmd().do()
 
     def disengage_cmd(self):
