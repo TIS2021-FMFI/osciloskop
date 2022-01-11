@@ -1,6 +1,6 @@
-from os import listdir, path as ospath, sep
+import os
 import PySimpleGUI as sg
-from backend.command import *
+import backend.command as cm
 
 
 class CustomConfig:
@@ -28,7 +28,7 @@ class CustomConfig:
     def open_creation(self, file=None):
         # opens a new window for creating a new configuration file
         if file:
-            filename = file.split(sep)[-1]
+            filename = file.split(os.sep)[-1]
             cfg_content = open(file).read()
         else:
             filename = ""
@@ -112,7 +112,7 @@ Use '#' in a command for a variable input.
         return sg.Column(rows, scrollable=scroll, vertical_scroll_only=True, size=(400, column_height))
 
     def run_command(self, cmd):
-        CustomCmd(str(cmd)).do()
+        cm.CustomCmd(str(cmd)).do()
         self.gui.add_set_value_key(cmd, "")
         self.gui.update_info()
 
@@ -126,15 +126,18 @@ Use '#' in a command for a variable input.
 
             if event in (sg.WIN_CLOSED, "Close"):
                 break
-            else:
-                _cmds = cmds if event == "Set all" else [next(cmd for cmd in cmds if cmd.key == event)]
-                for cmd in _cmds:
-                    if cmd.is_editable:
-                        cmd.input_from_user = values[cmd.edit_key].strip()
-                        if not cmd.input_from_user:
-                            sg.popup_no_border(f"'{str(cmd)}' has no input", background_color=self.gui.color_red)
-                            break
-                    self.run_command(cmd)
+            _cmds = cmds if event == "Set all" else [next(cmd for cmd in cmds if cmd.key == event)]
+            for cmd in _cmds:
+                if cmd.is_editable:
+                    cmd.input_from_user = values[cmd.edit_key].strip()
+                    if not cmd.input_from_user:
+                        sg.popup_no_border(
+                            f"'{cmd}' has no input",
+                            background_color=self.gui.color_red,
+                        )
+
+                        break
+                self.run_command(cmd)
 
         window.close()
 
@@ -146,5 +149,5 @@ Use '#' in a command for a variable input.
             pass
 
         if config_content:
-            open(ospath.join("assets", "config", file_name), "w").write(config_content)
-            self.gui.window[self.gui.config_file_combo].update(values=list(listdir(ospath.join("assets", "config"))))
+            open(os.path.join("assets", "config", file_name), "w").write(config_content)
+            self.gui.window[self.gui.config_file_combo].update(values=list(os.listdir(os.path.join("assets", "config"))))
