@@ -5,10 +5,6 @@ import backend.command as cm
 from backend.adapter import AdapterError
 from frontend.custom_config import CustomConfig
 from frontend.terminal import Terminal
-
-
-def convert_path(path):
-    return path.replace("/", os.sep)
 class GUI:
 
     class IsInCustomConfig():
@@ -214,6 +210,15 @@ class GUI:
                 self._currently_set_values[self.channels].remove(channel)
             self.window[channel].update(value=enabled)
 
+        self._currently_set_values[self.channels] = []
+        for channel in self.channels_checkboxes:
+            is_on = cm.ChannelCmd(self.channel_number(channel)).get_set_value()
+            if is_on:
+                self.window[channel].update(True)
+                self._currently_set_values[self.channels].append(channel)
+            else:
+                self.window[channel].update(False)
+
         self.set_gui_values_to_set_values()
         self.update_info()
 
@@ -292,10 +297,10 @@ class GUI:
 
         elif event in self.channels_checkboxes:
             if values[event]:
-                cm.TurnOnChannel(event[2:]).do()
+                cm.TurnOnChannelCmd(self.channel_number(event)).do()
                 self._currently_set_values[self.channels].append(event)
             else:
-                cm.TurnOffChannel(event[2:]).do()
+                cm.TurnOffChannelCmd(self.channel_number(event)).do()
                 self._currently_set_values[self.channels].remove(event)
 
         elif event == self.averaging_check:
@@ -376,3 +381,10 @@ class GUI:
 
         self.invoker.disengage_cmd()
         self.window.close()
+
+    def channel_number(self, channel_string):
+        return channel_string[2:]
+
+
+def convert_path(path):
+    return path.replace("/", os.sep)

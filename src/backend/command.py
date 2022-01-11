@@ -197,7 +197,7 @@ class StopDataAcquisitionCmd(Command):
         self.send_cmd("?")
 
 
-class TurnOnChannel(Command):
+class TurnOnChannelCmd(Command):
     def __init__(self, channel):
         self.channel = channel
 
@@ -205,12 +205,22 @@ class TurnOnChannel(Command):
         self.send_cmd(f"s :channel{self.channel}:display on")
 
 
-class TurnOffChannel(Command):
+class TurnOffChannelCmd(Command):
     def __init__(self, channel):
         self.channel = channel
 
     def do(self):
         self.send_cmd(f"s :channel{self.channel}:display off")
+
+class ChannelCmd(Command):
+    def __init__(self, channel):
+        self.channel = channel
+
+    def do(self):
+        pass
+
+    def get_set_value(self):
+        return self.send_cmd_with_output(f"q :channel{self.channel}:display?") == "1"
 
 
 class GetChannelEnabled(Command):
@@ -278,8 +288,6 @@ class Invoker:
         EnterCmdModeCmd().do()
         SetFormatToWordCmd().do()
         TurnOnRunModeCmd().do()
-        for channel in range(1, 4+1):
-            TurnOffChannel(channel).do()
         PreambleOffCmd().do()
 
     def disengage_cmd(self):
