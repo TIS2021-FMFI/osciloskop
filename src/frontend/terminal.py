@@ -9,6 +9,8 @@ class Terminal:
         self.window = None
 
     def open_window(self):
+        if self.window:
+            return
         self.input_ix = 0
         self.input_history = [""]
 
