@@ -203,6 +203,15 @@ class GUI:
         self.add_set_value_key(self.preamble_check, False)
         self.add_set_value_key(self.trimmed_check, True)
 
+        self._currently_set_values[self.channels] = []
+        for channel in self.channels_checkboxes:
+            is_on = ChannelCmd(self.channel_number(channel)).get_set_value()
+            if is_on:
+                self.window[channel].update(True)
+                self._currently_set_values[self.channels].append(channel)
+            else:
+                self.window[channel].update(False)
+
         self.set_gui_values_to_set_values()
         self.update_info()
 
@@ -277,10 +286,10 @@ class GUI:
 
         elif event in self.channels_checkboxes:
             if values[event]:
-                TurnOnChannel(event[2:]).do()
+                TurnOnChannelCmd(self.channel_number(event)).do()
                 self._currently_set_values[self.channels].append(event)
             else:
-                TurnOffChannel(event[2:]).do()
+                TurnOffChannelCmd(self.channel_number(event)).do()
                 self._currently_set_values[self.channels].remove(event)
 
         elif event == self.averaging_check:
@@ -366,3 +375,6 @@ class GUI:
 
     def convert_path(self, path):
         return path.replace("/", sep)
+
+    def channel_number(self, channel_string):
+        return channel_string[2:]

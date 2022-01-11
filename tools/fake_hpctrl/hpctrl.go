@@ -2,12 +2,14 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -41,9 +43,10 @@ const (
 )
 
 var (
-	fileWithPon      = filepath.Join("tools", "fake_hpctrl", "pon.txt")
-	fileWithPoff     = filepath.Join("tools", "fake_hpctrl", "poff.txt")
-	fileWithPoff1000 = filepath.Join("tools", "fake_hpctrl", "poff_1000.txt")
+	fileWithPon              = filepath.Join("tools", "fake_hpctrl", "pon.txt")
+	fileWithPoff             = filepath.Join("tools", "fake_hpctrl", "poff.txt")
+	fileWithPoff1000         = filepath.Join("tools", "fake_hpctrl", "poff_1000.txt")
+	cmdGetChannelStatusRegex = regexp.MustCompile(`q :channel[1-4]:display\?`)
 )
 
 type internalData struct {
@@ -52,6 +55,7 @@ type internalData struct {
 	measurementFilePath string
 	isPreamble          bool
 	isAverage           bool
+	enabledChannels     map[int]struct{}
 }
 
 func newInternalData() internalData {
@@ -59,6 +63,7 @@ func newInternalData() internalData {
 	res.acquirePoints = 100
 	res.acquireCount = 200
 	res.isAverage = true
+	res.enabledChannels = map[int]struct{}{1: {}, 3: {}}
 	return res
 }
 
@@ -81,17 +86,17 @@ func main() {
 
 loop:
 	for {
-		text, err := reader.ReadBytes(endOfLineChar)
+		input, err := reader.ReadBytes(endOfLineChar)
 		exitIfErr(err)
 
 		// simulating delay
 		time.Sleep(delayBetweenCommands)
 
-		writeToFile(logFile, text)
+		writeToFile(logFile, input)
 
-		textString := strings.TrimSpace(strings.ToLower(string(text)))
+		trimmedInput := strings.TrimSpace(strings.ToLower(string(input)))
 
-		switch textString {
+		switch trimmedInput {
 		case cmdExit:
 			break loop
 		case cmdGetIdn:
@@ -135,18 +140,25 @@ loop:
 			copyFile(data.measurementFilePath, fileWithData)
 		}
 
-		if strings.HasPrefix(textString, cmdFile) {
-			data.measurementFilePath = strings.TrimSpace(strings.TrimPrefix(textString, cmdFile))
-		} else if strings.HasPrefix(textString, cmdAcquirePoints) {
-			points, err := getLast(textString)
+		if strings.HasPrefix(trimmedInput, cmdFile) {
+			data.measurementFilePath = strings.TrimSpace(strings.TrimPrefix(trimmedInput, cmdFile))
+		} else if strings.HasPrefix(trimmedInput, cmdAcquirePoints) {
+			points, err := getLastAsInt(trimmedInput)
 			exitIfErr(err)
 			data.acquirePoints = points
-		} else if strings.HasPrefix(textString, cmdAcquireCount) {
-			count, err := getLast(textString)
+		} else if strings.HasPrefix(trimmedInput, cmdAcquireCount) {
+			count, err := getLastAsInt(trimmedInput)
 			exitIfErr(err)
 			data.acquireCount = count
+		} else if cmdGetChannelStatusRegex.MatchString(trimmedInput) {
+			channelNumber, err := getChannelNumber(trimmedInput)
+			exitIfErr(err)
+			if _, ok := data.enabledChannels[channelNumber]; ok {
+				fmt.Println("1")
+			} else {
+				fmt.Println("0")
+			}
 		}
-
 	}
 
 	writeToFile(logFile, []byte{newLineChar})
@@ -177,8 +189,18 @@ func copyFile(destination, source string) {
 	exitIfErr(err)
 }
 
-func getLast(cmd string) (int, error) {
+func getLastAsInt(cmd string) (int, error) {
 	split := strings.Fields(cmd)
 	last := split[len(split)-1]
 	return strconv.Atoi(last)
+}
+
+func getChannelNumber(command string) (int, error) {
+	regex := regexp.MustCompile(`[a-z]|:| |\?`)
+	for _, i := range regex.Split(command, -1) {
+		if i != "" {
+			return strconv.Atoi(i)
+		}
+	}
+	return 0, errors.New("invalid command")
 }
