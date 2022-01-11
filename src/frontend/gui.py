@@ -242,8 +242,14 @@ class GUI:
             self.set_gui_values_to_set_values()
 
     def event_check(self) -> bool:  # returns False if closed
-        event, values = self.window.read()
-        if event == self.connect_button:
+        window, event, values = sg.read_all_windows()
+        if window == self.terminal.window:
+            self.terminal.check_event(event, values)
+        
+        elif window == self.custom_config.window:
+            self.custom_config.check_event(event, values)
+
+        elif event == self.connect_button:
             self.invoker.initialize_cmds(values[self.address])
             self.add_set_value_key(self.address, values[self.address])
             self.button_activation(False)
@@ -255,8 +261,7 @@ class GUI:
             self.add_set_value_key(self.address, 0)
 
         elif event == self.new_config_button:
-            config_content, config_name = self.custom_config.open_creation()
-            self.custom_config.create_file(config_content, config_name)
+            self.custom_config.open_creation_window()
             
         elif event == self.edit_config_button:
             file_name = values[self.config_file_combo]
@@ -264,10 +269,7 @@ class GUI:
             if not os.path.isfile(full_path):
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
-            config_content, config_name = self.custom_config.open_creation(file=full_path)
-            self.custom_config.create_file(config_content, config_name)
-            if config_name:
-                self.window[self.config_file_combo].update(value=config_name)
+            self.custom_config.open_creation_window(file=full_path)
 
         elif event == self.load_config_button:
             file_name = values[self.config_file_combo]
@@ -276,7 +278,7 @@ class GUI:
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
             if file_name:
-                self.custom_config.open_window(full_path)
+                self.custom_config.open_config_window(full_path)
             else:
                 sg.popup_no_border("File not chosen", background_color=self.color_red)
 
