@@ -298,5 +298,7 @@ class Invoker:
 def channels_to_string(channels):
     return "".join(ch[2:] for ch in channels)
 
-
-adapter = Adapter(testing=True)
+adapter = None
+def start_adapter():
+    global adapter
+    adapter = Adapter(testing=True)

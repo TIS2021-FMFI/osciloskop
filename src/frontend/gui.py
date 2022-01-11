@@ -65,6 +65,14 @@ class GUI:
             element_justification="c",
             finalize=True
         )
+        self.start_adapter()
+
+    def start_adapter(self):
+        try:
+            cm.start_adapter()
+        except AdapterError as e:
+            sg.popup_no_border(e, background_color=self.color_red)
+            self.window.close()
 
     def _create_layout(self):
         button_size = (10, 1)
@@ -241,6 +249,8 @@ class GUI:
 
     def event_check(self) -> bool:  # returns False if closed
         window, event, values = sg.read_all_windows()
+        if window is None:
+            return False
         if window == self.terminal.window:
             self.terminal.check_event(event, values)
         
@@ -374,7 +384,8 @@ class GUI:
             except (cm.CommandError, AdapterError) as error:
                 sg.popup_no_border(error, background_color=self.color_red)
 
-        self.invoker.disengage_cmd()
+        if cm.adapter is not None:
+            self.invoker.disengage_cmd()
         self.window.close()
 
     def channel_number(self, channel_string):
