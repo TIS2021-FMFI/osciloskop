@@ -123,6 +123,7 @@ class GUI:
             size=(left_column_width, 280),
         )
 
+        self.saving_text = sg.Text("Saving...", visible=False, justification="c")
         col_run = sg.Col(
             [
                 [sg.Text("Directory in which the measurements will be saved:")],
@@ -135,6 +136,7 @@ class GUI:
                 [
                     sg.Button(self.run_button, size=button_size, disabled=True, pad=(1, 10)),
                     sg.Button(self.single_button, size=button_size, disabled=True),
+                    self.saving_text
                 ],
                 [
                     sg.Checkbox(
@@ -316,8 +318,9 @@ class GUI:
                 return True
             channels = self.get_set_value(self.channels)
             path = convert_path(values[self.curr_path])
+            self.saving_text.update(visible=True)
             if channels:
-                self.invoker.single_cmds(channels, path, self.is_data_reinterpreted)
+                self.invoker.single_cmds(channels, path, self.is_data_reinterpreted, self.saving_text)
             else:
                 sg.popup_no_border("No channels were selected", background_color=self.color_red)
 
@@ -334,8 +337,9 @@ class GUI:
             temp_file = convert_path("assets/measurements/temp.txt")
             self.invoker.start_run_cmds(temp_file, channels)
             sg.popup_no_border("stop", title="Running", keep_on_top=True, background_color=self.color_red)
+            self.saving_text.update(visible=True)
             path = convert_path(values[self.curr_path])
-            self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted)
+            self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted, self.saving_text)
 
         elif event == self.reset_osci_button:
             reset_message = "reset osci"

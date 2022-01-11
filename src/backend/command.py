@@ -2,6 +2,7 @@ import threading
 import time
 import os
 import backend.measurement as ms
+import PySimpleGUI as sg
 from backend.adapter import Adapter
 from abc import ABC, abstractmethod
 
@@ -233,7 +234,7 @@ class Invoker:
         CustomCmd(channels_to_string(channels)).do()
         StartDataAcquisitionCmd().do()
 
-    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble, reinterpret_trimmed_data):
+    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble, reinterpret_trimmed_data, text):
         StopDataAcquisitionCmd().do()
 
         start = time.time()
@@ -245,19 +246,27 @@ class Invoker:
 
         chans = channels_to_string(channels)
 
-        if is_preamble:
-            ms.MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
-                folder_to_store_measurements
-            )
-        else:
-            preamble = GetPreambleCmd().do()
-            ms.MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
-                folder_to_store_measurements
-            )
-            
-        os.remove(file_with_data)
 
-    def single_cmds(self, channels, path, reinterpret_trimmed_data):
+        def run():
+            if is_preamble:
+                ms.MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
+                    folder_to_store_measurements
+                )
+            else:
+                preamble = GetPreambleCmd().do()
+                ms.MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
+                    folder_to_store_measurements
+                )
+            os.remove(file_with_data)
+            text.update(visible=False)
+
+        thread = threading.Thread(target=run, args=())
+        thread.daemon = True
+        thread.start()
+        # run() # single-threaded, comment 3 lines above
+
+
+    def single_cmds(self, channels, path, reinterpret_trimmed_data, text):
         CustomCmd("s single").do()
         measurements = []
         for i in channels_to_string(channels):
@@ -270,6 +279,7 @@ class Invoker:
             measurements.append(ms.Measurement(preamble, data, i, reinterpret_trimmed_data))
         ms.SingleMeasurements(measurements).save_to_disk(path)
         TurnOnRunModeCmd().do()
+        text.update(visible=False)
 
     def initialize_cmds(self, address):
         adapter.start_hpctrl()
