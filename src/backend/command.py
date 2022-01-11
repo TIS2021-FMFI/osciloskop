@@ -245,21 +245,17 @@ class Invoker:
 
         chans = channels_to_string(channels)
 
-        def run():
-            if is_preamble:
-                ms.MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
-                    folder_to_store_measurements
-                )
-            else:
-                preamble = GetPreambleCmd().do()
-                ms.MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
-                    folder_to_store_measurements
-                )
-            os.remove(file_with_data)
-
-        thread = threading.Thread(target=run, args=())
-        thread.daemon = True
-        thread.start()
+        if is_preamble:
+            ms.MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
+                folder_to_store_measurements
+            )
+        else:
+            preamble = GetPreambleCmd().do()
+            ms.MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
+                folder_to_store_measurements
+            )
+            
+        os.remove(file_with_data)
 
     def single_cmds(self, channels, path, reinterpret_trimmed_data):
         CustomCmd("s single").do()
