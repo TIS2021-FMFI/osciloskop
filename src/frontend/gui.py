@@ -1,11 +1,14 @@
-from os import listdir, path as ospath, sep
+import os
 import platform
 import PySimpleGUI as sg
+import backend.command as cm
 from backend.adapter import AdapterError
-from backend.command import *
 from frontend.custom_config import CustomConfig
 from frontend.terminal import Terminal
 
+
+def convert_path(path):
+    return path.replace("/", os.sep)
 class GUI:
 
     class IsInCustomConfig():
@@ -54,10 +57,10 @@ class GUI:
     def __init__(self):
         sg.theme("DarkGrey9")
         sg.set_options(icon="assets/icon/icon.ico")
-        self.invoker = Invoker()
+        self.invoker = cm.Invoker()
+        self._currently_set_values = {self.channels: []}
         self.custom_config = CustomConfig(self)
         self.terminal = Terminal(self)
-        self._currently_set_values = {self.channels: []}
         self.layout = self._create_layout()
         self.window = sg.Window(
             "Oscilloscope control",
@@ -151,7 +154,7 @@ class GUI:
             element_justification="c"
         )
 
-        config_files = [f for f in listdir(ospath.join("assets", "config"))]
+        config_files = list(os.listdir(os.path.join("assets", "config")))
         col_cfg = sg.Col(
             [
                 [
@@ -197,11 +200,19 @@ class GUI:
                 self.window[key].update(value)
 
     def initialize_set_values(self):
-        self.add_set_value_key(self.average_pts_input, AverageNoCmd().get_set_value())
-        self.add_set_value_key(self.curr_points_input, PointsCmd().get_set_value())
-        self.add_set_value_key(self.averaging_check, AverageCmd().get_set_value())
+        self._currently_set_values = {self.channels: []}
+        self.add_set_value_key(self.average_pts_input, cm.AverageNoCmd().get_set_value())
+        self.add_set_value_key(self.curr_points_input, cm.PointsCmd().get_set_value())
+        self.add_set_value_key(self.averaging_check, cm.AverageCmd().get_set_value())
         self.add_set_value_key(self.preamble_check, False)
         self.add_set_value_key(self.trimmed_check, True)
+        for channel in self.channels_checkboxes:
+            enabled = cm.GetChannelEnabled(channel[-1]).do()
+            if enabled:
+                self._currently_set_values[self.channels].append(channel)
+            else:
+                self._currently_set_values[self.channels].remove(channel)
+            self.window[channel].update(value=enabled)
 
         self.set_gui_values_to_set_values()
         self.update_info()
@@ -249,17 +260,19 @@ class GUI:
             
         elif event == self.edit_config_button:
             file_name = values[self.config_file_combo]
-            full_path = ospath.join("assets", "config", file_name)
-            if not ospath.isfile(full_path):
+            full_path = os.path.join("assets", "config", file_name)
+            if not os.path.isfile(full_path):
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
             config_content, config_name = self.custom_config.open_creation(file=full_path)
             self.custom_config.create_file(config_content, config_name)
+            if config_name:
+                self.window[self.config_file_combo].update(value=config_name)
 
         elif event == self.load_config_button:
             file_name = values[self.config_file_combo]
-            full_path = ospath.join("assets", "config", file_name)
-            if not ospath.isfile(full_path):
+            full_path = os.path.join("assets", "config", file_name)
+            if not os.path.isfile(full_path):
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
             if file_name:
@@ -268,23 +281,23 @@ class GUI:
                 sg.popup_no_border("File not chosen", background_color=self.color_red)
 
         elif event == self.set_points_button:
-            PointsCmd(values[self.curr_points_input]).check_and_do()
+            cm.PointsCmd(values[self.curr_points_input]).check_and_do()
             self.add_set_value_key(self.curr_points_input, values[self.curr_points_input])
 
         elif event == self.set_average_pts_button:
-            AverageNoCmd(values[self.average_pts_input]).check_and_do()
+            cm.AverageNoCmd(values[self.average_pts_input]).check_and_do()
             self.add_set_value_key(self.average_pts_input, values[self.average_pts_input])
 
         elif event in self.channels_checkboxes:
             if values[event]:
-                TurnOnChannel(event[2:]).do()
+                cm.TurnOnChannel(event[2:]).do()
                 self._currently_set_values[self.channels].append(event)
             else:
-                TurnOffChannel(event[2:]).do()
+                cm.TurnOffChannel(event[2:]).do()
                 self._currently_set_values[self.channels].remove(event)
 
         elif event == self.averaging_check:
-            AverageCmd().do(values[self.averaging_check])
+            cm.AverageCmd().do(values[self.averaging_check])
             self.add_set_value_key(self.averaging_check, values[self.averaging_check])
 
         elif event == self.trimmed_check:
@@ -293,9 +306,9 @@ class GUI:
 
         elif event == self.preamble_check:
             if values[self.preamble_check]:
-                PreampleOnCmd().do()
+                cm.PreampleOnCmd().do()
             else:
-                PreambleOffCmd().do()
+                cm.PreambleOffCmd().do()
             self.add_set_value_key(self.preamble_check, values[self.preamble_check])
 
         elif event == self.single_button:
@@ -304,7 +317,7 @@ class GUI:
                 self.mismatched_popup(mismatched)
                 return True
             channels = self.get_set_value(self.channels)
-            path = self.convert_path(values[self.curr_path])
+            path = convert_path(values[self.curr_path])
             if channels:
                 self.invoker.single_cmds(channels, path, self.is_data_reinterpreted)
             else:
@@ -320,21 +333,21 @@ class GUI:
                 sg.popup_no_border("No channels were selected", background_color=self.color_red)
                 return True
             is_preamble = self.get_set_value(self.preamble_check)
-            temp_file = self.convert_path("assets/measurements/temp.txt")
+            temp_file = convert_path("assets/measurements/temp.txt")
             self.invoker.start_run_cmds(temp_file, channels)
             sg.popup_no_border("stop", title="Running", keep_on_top=True, background_color=self.color_red)
-            path = self.convert_path(values[self.curr_path])
+            path = convert_path(values[self.curr_path])
             self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted)
 
         elif event == self.reset_osci_button:
             reset_message = "reset osci"
             if sg.popup_get_text(f"Type '{reset_message}' to factory reset", keep_on_top=True) == reset_message:
-                FactoryResetCmd().do()
+                cm.FactoryResetCmd().do()
                 return True
             sg.popup_no_border(f"Didn't reset, input wasn't '{reset_message}'", background_color=self.color_red)
 
         elif event == self.ping_osci_button:
-            if CheckIfResponsiveCmd().do():
+            if cm.CheckIfResponsiveCmd().do():
                 sg.popup_no_border("ping successful", background_color=self.color_green)
             else:
                 sg.popup_no_border("couldn't ping", background_color=self.color_red)
@@ -356,13 +369,8 @@ class GUI:
                 if not self.event_check():
                     break
                 self.update_info()
-            except (CommandError, AdapterError) as e:
-                sg.popup_no_border(e, background_color=self.color_red)
-            except Exception as e:
-                print(e)
+            except (cm.CommandError, AdapterError) as error:
+                sg.popup_no_border(error, background_color=self.color_red)
 
         self.invoker.disengage_cmd()
         self.window.close()
-
-    def convert_path(self, path):
-        return path.replace("/", sep)
