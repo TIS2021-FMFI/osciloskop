@@ -202,22 +202,13 @@ class GUI:
         self.add_set_value_key(self.averaging_check, cm.AverageCmd().get_set_value())
         self.add_set_value_key(self.preamble_check, False)
         self.add_set_value_key(self.trimmed_check, True)
-        for channel in self.channels_checkboxes:
-            enabled = cm.GetChannelEnabled(channel[-1]).do()
-            if enabled:
-                self._currently_set_values[self.channels].append(channel)
-            else:
-                self._currently_set_values[self.channels].remove(channel)
-            self.window[channel].update(value=enabled)
 
         self._currently_set_values[self.channels] = []
         for channel in self.channels_checkboxes:
-            is_on = cm.ChannelCmd(self.channel_number(channel)).get_set_value()
-            if is_on:
-                self.window[channel].update(True)
+            enabled = cm.ChannelCmd(self.channel_number(channel)).get_set_value()
+            if enabled:
                 self._currently_set_values[self.channels].append(channel)
-            else:
-                self.window[channel].update(False)
+            self.window[channel].update(enabled)
 
         self.set_gui_values_to_set_values()
         self.update_info()

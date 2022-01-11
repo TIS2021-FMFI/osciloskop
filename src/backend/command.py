@@ -212,6 +212,7 @@ class TurnOffChannelCmd(Command):
     def do(self):
         self.send_cmd(f"s :channel{self.channel}:display off")
 
+
 class ChannelCmd(Command):
     def __init__(self, channel):
         self.channel = channel
@@ -221,14 +222,6 @@ class ChannelCmd(Command):
 
     def get_set_value(self):
         return self.send_cmd_with_output(f"q :channel{self.channel}:display?") == "1"
-
-
-class GetChannelEnabled(Command):
-    def __init__(self, channel):
-        self.channel = channel
-    
-    def do(self):
-        return self.send_cmd_with_output(f"q :channel{self.channel}:display?") in ("1", 1)
 
 
 class Invoker:
