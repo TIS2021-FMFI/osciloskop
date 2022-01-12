@@ -1,4 +1,5 @@
 import os
+import PySimpleGUI as sg
 from datetime import datetime
 
 
@@ -8,72 +9,42 @@ class Preamble:
 
     def parse(self, data):
         _data = data.split(",")
-        # _data[1] is format
-        self.type = _data[1]
-        self.points = _data[2]
-        self.count = _data[3]
-        self.x_increment = _data[4]
-        self.x_origin = _data[5]
-        self.x_reference = _data[6]
-        self.y_increment = _data[7]
-        self.y_origin = _data[8]
-        self.y_reference = _data[9]
-        self.coupling = _data[10]
-        self.x_display_range = _data[11]
-        self.x_display_origin = _data[12]
-        self.y_display_range = _data[13]
-        self.y_display_origin = _data[14]
-        self.date = _data[15]
-        self.time = _data[16]
-        self.frame_model = _data[17]
-        self.plug_in_model = _data[18]
-        self.acquisition_mode = _data[19]
-        self.completion = _data[20]
-        self.x_units = _data[21]
-        self.y_units = _data[22]
-        self.max_bandwidth_limit = _data[23]
-        self.min_bandwidth_limit = _data[24]
-        self.milliseconds = ""
-        try:
-            self.milliseconds = _data[25]
-        except IndexError:
-            pass
-
-    def __str__(self):
-        if self.type == "1":
+        type = _data[1]
+        if type == "1":
             type = "raw"
-        elif self.type == "2":
+        elif type == "2":
             type = "average"
         else:
             type = "unknown"
-        res = f"""Type:\t {type}
-Points:\t {self.points}
-Count:\t {self.count}
-X increment:\t {self.x_increment}
-X origin:\t {self.x_origin}
-X reference:\t {self.x_reference}
-Y increment:\t {self.y_increment}
-Y origin:\t {self.y_origin}
-Y reference:\t {self.y_reference}
-Coupling:\t {self.coupling}
-X display range:\t {self.x_display_range}
-X display origin:\t {self.x_display_origin}
-Y display range:\t {self.x_display_range}
-Y display origin:\t {self.y_display_origin}
-Date:\t {self.date}
-Time:\t {self.time}
-Frame:\t {self.frame_model}
-Module:\t {self.plug_in_model}
-Acq mode:\t {self.acquisition_mode}
-Completion:\t {self.completion}
-X units:\t {self.x_units}
-Y units:\t {self.y_units}
-Max bandwidth:\t {self.max_bandwidth_limit}
-Min bandwidth:\t {self.min_bandwidth_limit}"""
-        if self.milliseconds:
-            res += f"\nNumber of microseconds from the first measurement:\t {self.milliseconds}"
-        res += "\n"
-        return res
+        self.preamble_dict = {'Type': type}
+        self.preamble_dict["Points"] = _data[2]
+        self.preamble_dict["Count"] = _data[3]
+        self.preamble_dict["X increment"] = _data[4]
+        self.preamble_dict["X origin"] = _data[5]
+        self.preamble_dict["X reference"] = _data[6]
+        self.preamble_dict["Y increment"] = _data[7]
+        self.preamble_dict["Y origin"] = _data[8]
+        self.preamble_dict["Y reference"] = _data[9]
+        self.preamble_dict["Coupling"] = _data[10]
+        self.preamble_dict["X display range"] = _data[11]
+        self.preamble_dict["X display origin"] = _data[12]
+        self.preamble_dict["Y display range"] = _data[13]
+        self.preamble_dict["Y display origin"] = _data[14]
+        self.preamble_dict["Date"] = _data[15]
+        self.preamble_dict["Time"] = _data[16]
+        self.preamble_dict["Frame"] = _data[17]
+        self.preamble_dict["Module"] = _data[18]
+        self.preamble_dict["Acq mode"] = _data[19]
+        self.preamble_dict["Completion"] = _data[20]
+        self.preamble_dict["X units"] = _data[21]
+        self.preamble_dict["Y units"] = _data[22]
+        self.preamble_dict["Max bandwidth"] = _data[23]
+        self.preamble_dict["Min bandwidth"] = _data[24]
+        if len(_data) == 25+1:
+            self.preamble_dict["Number of microseconds from the first measurement"] = _data[25]
+
+    def __str__(self):
+        return "".join(f"{key}:\t {val}\n" for key, val in self.preamble_dict.items())
 
 
 class Measurement:
@@ -91,6 +62,7 @@ class Measurement:
 
     def correct_data(self, data):
         _data = []
+        p_dict = self.preamble.preamble_dict
         for i in data.split():
             word_value = int(i)
             if self.reinterpret_trimmed_data:
@@ -101,8 +73,8 @@ class Measurement:
                 elif word_value == self.hole:
                     word_value = self.hole_corrected
             if word_value != self.hole_corrected:
-                word_value = word_value * float(self.preamble.y_increment) + float(
-                    self.preamble.y_origin
+                word_value = word_value * float(p_dict["Y increment"]) + float(
+                    p_dict["Y origin"]
                 )
             _data.append(word_value)
         return _data
@@ -111,13 +83,19 @@ class Measurement:
         data = "".join(str(i) + "\n" for i in self.data)
         return f"{self.preamble.__str__()}\n{data}"
 
-    def append_ms_to_preamble(self, ms):
-        self.preamble.milliseconds = ms
+    def append_us_to_preamble(self, us):
+        self.preamble.preamble_dict["Number of microseconds from the first measurement"] = us
 
 
 class Measurements:
     measurements = None
 
+    def __init__(self, file_path, channels, reinterpret_trimmed_data, saving_gui_text: sg.Text):
+        self.file_path = file_path
+        self.channels = channels
+        self.reinterpret_trimmed_data = reinterpret_trimmed_data
+        self.saving_gui_text = saving_gui_text
+    
     class FileName:
         def __init__(self, channel):
             self.channel = channel
@@ -133,9 +111,10 @@ class Measurements:
         except FileExistsError:
             pass
 
-        for i in self.measurements:
-            file = self.FileName(i.channel)
-            open(os.path.join(path, str(file)), "w").write(str(i))
+        for i, measurement in enumerate(self.measurements):
+            file = self.FileName(measurement.channel)
+            open(os.path.join(path, str(file)), "w").write(str(measurement))
+            self.saving_gui_text.update(value=f"Saving {i}/{len(self.measurements)}")
 
     def get_ms_and_data(self, line):
         first_space = line.index(" ")
@@ -151,20 +130,20 @@ class SingleMeasurements(Measurements):
 
 
 class MultipleMeasurementsNoPreambles(Measurements):
-    def __init__(self, file_path, preamble, channels, reinterpret_trimmed_data):
+
+    def __init__(self, file_path, preamble, channels, reinterpret_trimmed_data, saving_gui_text: sg.Text):
         """
         channels should be string, e.g. "23"
         """
-        self.file_path = file_path
+        super().__init__(file_path, channels, reinterpret_trimmed_data, saving_gui_text)
         self.preamble = preamble
-        self.channels = self.sort_channels_numerically(channels)
-        self.reinterpret_trimmed_data = reinterpret_trimmed_data
         self.measurements = self.parse_file()
 
     def parse_file(self):
         measurements = []
 
         with open(self.file_path, "r") as f:
+            self.saving_gui_text.update(value="Reading temp.txt")
             for i, line in enumerate(f):
                 ms, data = self.get_ms_and_data(line)
                 measurement = Measurement(
@@ -173,41 +152,41 @@ class MultipleMeasurementsNoPreambles(Measurements):
                     self.channels[i % len(self.channels)],
                     self.reinterpret_trimmed_data,
                 )
-                measurement.append_ms_to_preamble(ms)
+                measurement.append_us_to_preamble(ms)
                 measurements.append(measurement)
 
         return measurements
 
 
 class MultipleMeasurementsWithPreambles(Measurements):
-    def __init__(self, file_path, channels, reinterpret_trimmed_data):
+
+    def __init__(self, file_path, channels, reinterpret_trimmed_data, saving_gui_text: sg.Text):
         """
         channels should be string, e.g. "23"
         """
-        self.file_path = file_path
-        self.channels = self.sort_channels_numerically(channels)
-        self.reinterpret_trimmed_data = reinterpret_trimmed_data
+        super().__init__(file_path, channels, reinterpret_trimmed_data, saving_gui_text)
         self.measurements = self.parse_file()
 
     def parse_file(self):
         measurements = []
 
         with open(self.file_path, "r") as f:
+            self.saving_gui_text.update(value="Reading temp.txt")
             preamble = None
             channel_index = 0
             for i, line in enumerate(f):
                 if i % 2 == 0:
                     preamble = line.strip()
+                    continue
+                ms, data = self.get_ms_and_data(line)
+                measurement = Measurement(
+                    preamble, data, self.channels[channel_index], self.reinterpret_trimmed_data
+                )
+                measurement.append_us_to_preamble(ms)
+                measurements.append(measurement)
+                if channel_index > len(self.channels) - 2:
+                    channel_index = 0
                 else:
-                    ms, data = self.get_ms_and_data(line)
-                    measurement = Measurement(
-                        preamble, data, self.channels[channel_index], self.reinterpret_trimmed_data
-                    )
-                    measurement.append_ms_to_preamble(ms)
-                    measurements.append(measurement)
-                    if channel_index > len(self.channels) - 2:
-                        channel_index = 0
-                    else:
-                        channel_index += 1
+                    channel_index += 1
 
         return measurements
