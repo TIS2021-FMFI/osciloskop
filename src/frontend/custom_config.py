@@ -33,7 +33,8 @@ class CustomConfig:
             return
         if file:
             filename = file.split(os.sep)[-1]
-            cfg_content = open(file).read()
+            with open(file) as f:
+                cfg_content = f.read()
         else:
             filename = ""
             cfg_content = ""
@@ -98,7 +99,8 @@ Use '#' in a command for a variable input.
             for cmd in cmds:
                 rows.append(parse_line(cmd.key, cmd.edit_key, cmd.input_from_user))
         except KeyError:
-            lines = [" ".join(line.split()) for line in open(file_name).readlines()]
+            with open(file_name) as f:
+                lines = [" ".join(line.split()) for line in f.readlines()]
             for line in lines:
                 cmd = self.Cmd(line, self.input_char)
                 cmds.append(cmd)
@@ -153,7 +155,8 @@ Use '#' in a command for a variable input.
             pass
 
         if config_content:
-            open(os.path.join("assets", "config", file_name), "w").write(config_content)
+            with open(os.path.join("assets", "config", file_name), "w") as f:
+                f.write(config_content)
             self.gui.window[self.gui.config_file_combo].update(values=list(os.listdir(os.path.join("assets", "config"))))
             
     def close_window(self):
