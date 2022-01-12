@@ -249,8 +249,6 @@ class GUI:
 
     def event_check(self) -> bool:  # returns False if closed
         window, event, values = sg.read_all_windows()
-        if window is None:
-            return False
         if window == self.terminal.window:
             self.terminal.check_event(event, values)
         
@@ -347,7 +345,7 @@ class GUI:
             temp_file = convert_path("assets/measurements/temp.txt")
             self.invoker.start_run_cmds(temp_file, channels)
             sg.popup_no_border("stop", title="Running", keep_on_top=True, background_color=self.color_red)
-            self.saving_text.update(visible=True)
+            self.saving_text.update(visible=True, value="Saving...")
             path = convert_path(values[self.curr_path])
             self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted, self.saving_text)
 
