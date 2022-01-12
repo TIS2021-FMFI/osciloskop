@@ -253,6 +253,7 @@ class Invoker:
                     folder_to_store_measurements
                 )
             else:
+                time.sleep(0.5)
                 preamble = GetPreambleCmd().do().split("\n")[-1]
                 ms.MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data, saving_gui_text).save_to_disk(
                     folder_to_store_measurements
