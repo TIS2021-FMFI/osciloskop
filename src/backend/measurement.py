@@ -116,7 +116,7 @@ class Measurements:
             open(os.path.join(path, str(file)), "w").write(str(measurement))
             self.saving_gui_text.update(value=f"Saving {i}/{len(self.measurements)}")
 
-    def get_ms_and_data(self, line):
+    def get_us_and_data(self, line):
         first_space = line.index(" ")
         return (line[:first_space], line[first_space + 1 :])
 
@@ -147,14 +147,14 @@ class MultipleMeasurementsNoPreambles(Measurements):
         with open(self.file_path, "r") as f:
             self.saving_gui_text.update(value="Reading temp.txt")
             for i, line in enumerate(f):
-                ms, data = self.get_ms_and_data(line)
+                us, data = self.get_us_and_data(line)
                 measurement = Measurement(
                     self.preamble,
                     data,
                     self.channels[i % len(self.channels)],
                     self.reinterpret_trimmed_data,
                 )
-                measurement.append_us_to_preamble(ms)
+                measurement.append_us_to_preamble(us)
                 measurements.append(measurement)
 
         return measurements
@@ -180,11 +180,11 @@ class MultipleMeasurementsWithPreambles(Measurements):
                 if i % 2 == 0:
                     preamble = line.strip()
                     continue
-                ms, data = self.get_ms_and_data(line)
+                us, data = self.get_us_and_data(line)
                 measurement = Measurement(
                     preamble, data, self.channels[channel_index], self.reinterpret_trimmed_data
                 )
-                measurement.append_us_to_preamble(ms)
+                measurement.append_us_to_preamble(us)
                 measurements.append(measurement)
                 if channel_index > len(self.channels) - 2:
                     channel_index = 0
