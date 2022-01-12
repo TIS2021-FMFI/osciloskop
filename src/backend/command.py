@@ -3,7 +3,7 @@ import time
 import os
 import backend.measurement as ms
 import PySimpleGUI as sg
-from backend.adapter import Adapter
+from backend.adapter import Adapter, AdapterError
 from abc import ABC, abstractmethod
 
 
@@ -239,7 +239,13 @@ class Invoker:
 
         start = time.time()
         timeout = 30 # in seconds
-        while not "!file written" in adapter.get_output(0.2):
+        while True:
+            try:
+                hpctrl_output = adapter.get_output(0.2)
+                if "!file written" in hpctrl_output:
+                    break
+            except AdapterError:
+                pass
             if time.time() > start + timeout:
                 raise CommandError("hpctrl didn't create the file with measurements")
             time.sleep(0.5)
