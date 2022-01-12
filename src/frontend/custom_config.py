@@ -52,8 +52,10 @@ class CustomConfig:
         if event == "Discard changes":
             if values["cfg_input"]:  # ask only if nothing is written
                 ans = sg.popup_yes_no("Are you sure you want to discard current changes?")
-                if ans == "No":
-                    return
+                if ans == "Yes":
+                    self.close_window()
+            else:
+                self.close_window()
         elif event == "Save":
             if not values["cfg_name"]:
                 sg.popup_no_border("Config name is empty", background_color=self.gui.color_red)
