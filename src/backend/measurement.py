@@ -95,7 +95,7 @@ class Measurements:
 
     def __init__(self, file_path, channels, reinterpret_trimmed_data, saving_gui_text: sg.Text):
         self.file_path = file_path
-        self.channels = channels
+        self.channels = self.sort_channels_numerically(channels)
         self.reinterpret_trimmed_data = reinterpret_trimmed_data
         self.saving_gui_text = saving_gui_text
     
