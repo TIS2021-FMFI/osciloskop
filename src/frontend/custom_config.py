@@ -34,12 +34,12 @@ class CustomConfig:
         if file:
             filename = file.split(os.sep)[-1]
             with open(file) as f:
-                cfg_content = f.read()
+                self.cfg_content = f.read()
         else:
             filename = ""
-            cfg_content = ""
+            self.cfg_content = ""
         layout = [
-            [sg.Multiline(cfg_content, key="cfg_input", size=(50, 20))],
+            [sg.Multiline(self.cfg_content, key="cfg_input", size=(50, 20))],
             [sg.Text("Config name:"), sg.InputText(filename, key="cfg_name", size=(20, 1))],
             [sg.Button("Save"), sg.Button("Discard changes"), sg.Button("Help")],
         ]
@@ -50,7 +50,7 @@ class CustomConfig:
         config_content = ""
         config_name = ""
         if event == "Discard changes":
-            if values["cfg_input"]:  # ask only if nothing is written
+            if values["cfg_input"] != self.cfg_content:  # ask only if nothing is written
                 ans = sg.popup_yes_no("Are you sure you want to discard current changes?")
                 if ans == "Yes":
                     self.close_window()
