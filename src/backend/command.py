@@ -234,7 +234,7 @@ class Invoker:
         CustomCmd(channels_to_string(channels)).do()
         StartDataAcquisitionCmd().do()
 
-    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble, reinterpret_trimmed_data, text):
+    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble, reinterpret_trimmed_data, saving_gui_text: sg.Text):
         StopDataAcquisitionCmd().do()
 
         start = time.time()
@@ -249,16 +249,17 @@ class Invoker:
 
         def run():
             if is_preamble:
-                ms.MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
+                ms.MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data, saving_gui_text).save_to_disk(
                     folder_to_store_measurements
                 )
             else:
                 preamble = GetPreambleCmd().do()
-                ms.MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
+                ms.MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data, saving_gui_text).save_to_disk(
                     folder_to_store_measurements
                 )
+            saving_gui_text.update(value="Removing temp.txt")
             os.remove(file_with_data)
-            text.update(visible=False)
+            saving_gui_text.update(visible=False)
 
         thread = threading.Thread(target=run, args=())
         thread.daemon = True
