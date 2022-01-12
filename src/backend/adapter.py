@@ -61,7 +61,7 @@ class Adapter:
         """
         out_str = ""
         get_started = time.time()
-        
+        time.sleep(0.1)
         while True:
             if self.out_queue.empty():
                 number_of_attempts = 10
@@ -152,7 +152,7 @@ class Adapter:
         """
         if not self.is_hpctrl_running():
             raise AdapterError("hpctrl is not running")
-        if isinstance(messages, list):  
+        if isinstance(messages, list):
             messages = "\n".join(messages)
         try:
             print(messages, file=self.process.stdin)

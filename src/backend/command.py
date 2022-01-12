@@ -302,4 +302,4 @@ def channels_to_string(channels):
 adapter = None
 def start_adapter():
     global adapter
-    adapter = Adapter(testing=True)
+    adapter = Adapter(testing=False)
