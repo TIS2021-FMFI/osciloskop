@@ -238,11 +238,11 @@ class Invoker:
         StopDataAcquisitionCmd().do()
 
         start = time.time()
-        timeout = 5 # in seconds
-        while not os.path.isfile(file_with_data):
+        timeout = 30 # in seconds
+        while not "!file written" in adapter.get_output(0.2):
             if time.time() > start + timeout:
-                raise CommandError("hpctrl didn't create a file with measurements")
-            time.sleep(0.1)
+                raise CommandError("hpctrl didn't create the file with measurements")
+            time.sleep(0.5)
 
         chans = channels_to_string(channels)
 
