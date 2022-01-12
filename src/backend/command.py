@@ -253,8 +253,7 @@ class Invoker:
                     folder_to_store_measurements
                 )
             else:
-                preamble = GetPreambleCmd().do()
-                # preamble = GetPreambleCmd().do().split("\n")[-1]
+                preamble = GetPreambleCmd().do().split("\n")[-1]
                 ms.MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data, saving_gui_text).save_to_disk(
                     folder_to_store_measurements
                 )
@@ -262,10 +261,10 @@ class Invoker:
             os.remove(file_with_data)
             saving_gui_text.update(visible=False)
 
-        # thread = threading.Thread(target=run, args=())
-        # thread.daemon = True
-        # thread.start()
-        run() # single-threaded, comment 3 lines above
+        thread = threading.Thread(target=run, args=())
+        thread.daemon = True
+        thread.start()
+        # run() # single-threaded, comment 3 lines above
 
 
     def single_cmds(self, channels, path, reinterpret_trimmed_data, saving_gui_text):
@@ -303,4 +302,4 @@ def channels_to_string(channels):
 adapter = None
 def start_adapter():
     global adapter
-    adapter = Adapter(testing=False)
+    adapter = Adapter(testing=True)
