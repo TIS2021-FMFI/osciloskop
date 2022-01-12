@@ -249,6 +249,8 @@ class GUI:
 
     def event_check(self) -> bool:  # returns False if closed
         window, event, values = sg.read_all_windows()
+        if window is None:
+            return False
         if window == self.terminal.window:
             self.terminal.check_event(event, values)
         
