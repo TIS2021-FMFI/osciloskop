@@ -5,7 +5,7 @@ from datetime import datetime
 
 class Preamble:
     def __init__(self, data):
-        self.parse(data)
+        self.preamble_dict = self.parse(data)
 
     def parse(self, data):
         _data = data.split(",")
@@ -16,32 +16,35 @@ class Preamble:
             type = "average"
         else:
             type = "unknown"
-        self.preamble_dict = {'Type': type}
-        self.preamble_dict["Points"] = _data[2]
-        self.preamble_dict["Count"] = _data[3]
-        self.preamble_dict["X increment"] = _data[4]
-        self.preamble_dict["X origin"] = _data[5]
-        self.preamble_dict["X reference"] = _data[6]
-        self.preamble_dict["Y increment"] = _data[7]
-        self.preamble_dict["Y origin"] = _data[8]
-        self.preamble_dict["Y reference"] = _data[9]
-        self.preamble_dict["Coupling"] = _data[10]
-        self.preamble_dict["X display range"] = _data[11]
-        self.preamble_dict["X display origin"] = _data[12]
-        self.preamble_dict["Y display range"] = _data[13]
-        self.preamble_dict["Y display origin"] = _data[14]
-        self.preamble_dict["Date"] = _data[15]
-        self.preamble_dict["Time"] = _data[16]
-        self.preamble_dict["Frame"] = _data[17]
-        self.preamble_dict["Module"] = _data[18]
-        self.preamble_dict["Acq mode"] = _data[19]
-        self.preamble_dict["Completion"] = _data[20]
-        self.preamble_dict["X units"] = _data[21]
-        self.preamble_dict["Y units"] = _data[22]
-        self.preamble_dict["Max bandwidth"] = _data[23]
-        self.preamble_dict["Min bandwidth"] = _data[24]
+        preamble_dict = {
+            'Type': type,
+            'Points': _data[2],
+            'Count': _data[3],
+            'X increment': _data[4],
+            'X origin': _data[5],
+            'X reference': _data[6],
+            'Y increment': _data[7],
+            'Y origin': _data[8],
+            'Y reference': _data[9],
+            'Coupling': _data[10],
+            'X display range': _data[11],
+            'X display origin': _data[12],
+            'Y display range': _data[13],
+            'Y display origin': _data[14],
+            'Date': _data[15],
+            'Time': _data[16],
+            'Frame': _data[17],
+            'Module': _data[18],
+            'Acq mode': _data[19],
+            'Completion': _data[20],
+            'X units': _data[21],
+            'Y units': _data[22],
+            'Max bandwidth': _data[23],
+            'Min bandwidth': _data[24],
+        }
         if len(_data) == 25+1:
-            self.preamble_dict["Number of microseconds from the first measurement"] = _data[25]
+            preamble_dict["Number of microseconds from the first measurement"] = _data[25]
+        return preamble_dict
 
     def __str__(self):
         return "".join(f"{key}:\t {val}\n" for key, val in self.preamble_dict.items())
@@ -113,7 +116,8 @@ class Measurements:
 
         for i, measurement in enumerate(self.measurements):
             file = self.FileName(measurement.channel)
-            open(os.path.join(path, str(file)), "w").write(str(measurement))
+            with open(os.path.join(path, str(file)), "w") as f:
+                f.write(str(measurement))
             self.saving_gui_text.update(value=f"Saving {i}/{len(self.measurements)}")
 
     def get_us_and_data(self, line):
