@@ -326,7 +326,7 @@ class GUI:
                 return True
             channels = self.get_set_value(self.channels)
             path = convert_path(values[self.curr_path])
-            self.saving_text.update(visible=True)
+            self.saving_text.update(visible=True, value="Saving...")
             if channels:
                 self.invoker.single_cmds(channels, path, self.is_data_reinterpreted, self.saving_text)
             else:

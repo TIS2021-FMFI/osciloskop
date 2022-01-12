@@ -125,8 +125,10 @@ class Measurements:
 
 
 class SingleMeasurements(Measurements):
-    def __init__(self, measurements):
+    def __init__(self, measurements, saving_gui_text: sg.Text):
         self.measurements = measurements
+        self.saving_gui_text = saving_gui_text
+
 
 
 class MultipleMeasurementsNoPreambles(Measurements):

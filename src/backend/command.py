@@ -267,7 +267,7 @@ class Invoker:
         # run() # single-threaded, comment 3 lines above
 
 
-    def single_cmds(self, channels, path, reinterpret_trimmed_data, text):
+    def single_cmds(self, channels, path, reinterpret_trimmed_data, saving_gui_text):
         CustomCmd("s single").do()
         measurements = []
         for i in channels_to_string(channels):
@@ -278,9 +278,9 @@ class Invoker:
             data = data[(data.find("\n")+1):]
             preamble = GetPreambleCmd().do()
             measurements.append(ms.Measurement(preamble, data, i, reinterpret_trimmed_data))
-        ms.SingleMeasurements(measurements).save_to_disk(path)
+        ms.SingleMeasurements(measurements, saving_gui_text).save_to_disk(path)
         TurnOnRunModeCmd().do()
-        text.update(visible=False)
+        saving_gui_text.update(visible=False)
 
     def initialize_cmds(self, address):
         adapter.start_hpctrl()
