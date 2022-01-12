@@ -41,6 +41,7 @@ const (
 	cmAverageOn           = "s :acquire:average on"
 	cmAverageOff          = "s :acquire:average off"
 	delayBetweenCommands  = 200 * time.Microsecond
+	msgFileWritten        = "!file written"
 )
 
 var (
@@ -139,6 +140,7 @@ loop:
 				}
 			}
 			copyFile(data.measurementFilePath, fileWithData)
+			fmt.Println(msgFileWritten)
 		}
 
 		if strings.HasPrefix(trimmedInput, cmdFile) {

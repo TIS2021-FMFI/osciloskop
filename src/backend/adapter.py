@@ -57,7 +57,6 @@ class Adapter:
     def get_output(self, timeout):
         """
         returns output from hpctrl as str. Timeout arg is in seconds.
-        It also calls self.clear_input_queue() before it finishes
         """
         out_str = ""
         get_started = time.time()
@@ -74,8 +73,6 @@ class Adapter:
                 raise AdapterError(f"timeout error: the operation took longer than {timeout} seconds")
             if not self.out_queue.empty():
                 out_str += self.out_queue.get_nowait()
-
-        self.clear_input_queue()
         
         res = out_str.strip()
         if not res:
@@ -146,10 +143,12 @@ class Adapter:
         """
         return self.send_and_get_output([self.cmd_idn], 0.2) == self.cmd_idn_response
 
-    def send(self, messages, clean_output_after=True):
+    def send(self, messages):
         """
-        prints messages into self.process.stdin
+        clears input queue an then prints messages into self.process.stdin
         """
+        self.clear_input_queue()
+
         if not self.is_hpctrl_running():
             raise AdapterError("hpctrl is not running")
         if isinstance(messages, list):
@@ -163,14 +162,11 @@ class Adapter:
             if messages != self.cmd_exit:
                 raise AdapterError("could not send the command")
         
-        if clean_output_after:
-            self.clear_input_queue()
-
     def send_and_get_output(self, messages, timeout):
         """
         calls self.send(messages) and then self.get_output(timeout, lines)
         """
-        self.send(messages, False)
+        self.send(messages)
         return self.get_output(timeout)
 
     def connect(self, address):
