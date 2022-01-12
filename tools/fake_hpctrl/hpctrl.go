@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // all commands have to be in lowercase
@@ -196,10 +197,9 @@ func getLastAsInt(cmd string) (int, error) {
 }
 
 func getChannelNumber(command string) (int, error) {
-	regex := regexp.MustCompile(`[a-z]|:| |\?`)
-	for _, i := range regex.Split(command, -1) {
-		if i != "" {
-			return strconv.Atoi(i)
+	for _, i := range command {
+		if unicode.IsDigit(i) {
+			return strconv.Atoi(string(i))
 		}
 	}
 	return 0, errors.New("invalid command")
