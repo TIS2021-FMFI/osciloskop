@@ -15,9 +15,7 @@ def make_dirs():
 
 if __name__ == "__main__":
     if not os.path.isfile(env_path):
-        error_message = f"the {env_path} file not found"
-        print(error_message)
-        sys.exit(error_message)
+        sys.exit(f"the {env_path} file not found")
     load_dotenv(env_path)
     try:
         make_dirs()
