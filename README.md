@@ -10,12 +10,13 @@
 ## Binary compilation
 Install PyInstaller: `pip install pyinstaller`
 
+Compile:
 `
 pyinstaller --noconfirm --onefile --noconsole --windowed --hidden-import "pysimplegui" --hidden-import "python-dotenv" --icon "assets\icon\icon.ico" --name "OscilloscopeCtrl" "src\main.py"
 `
 
 ## Launching
-`python src/main.py` from the root folder or launch the binary in the root folder
+Application must be launched from the root folder, so `python src/main.py` or launch the binary in the root folder
 
 ## Screenshots
 Main window  
