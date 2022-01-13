@@ -253,6 +253,7 @@ class GUI:
             self.set_gui_values_to_set_values()
 
     def check_if_running_measurement(self):
+        start = time.time()
         while True:
             if self.window[self.run_button].get_text() == "RUN":
                 return
@@ -260,6 +261,8 @@ class GUI:
             if curr_output is not None:
                 self.window.write_event_value(self.run_button, curr_output)
                 return
+            running_time = round(time.time() - start, 1)
+            self.saving_text.update(value=f"Running {running_time}s")
             time.sleep(0.5)
 
     def event_check(self) -> bool:  # returns False if closed
@@ -373,6 +376,7 @@ class GUI:
             self.invoker.start_run_cmds(temp_file, channels)
             self.window[self.run_button].Update("STOP")
             self.window[self.run_button].Update(button_color="red")
+            self.saving_text.update(visible=True, value="Running...")
             threading.Thread(target=self.check_if_running_measurement).start()
 
         elif event == self.reset_osci_button:
