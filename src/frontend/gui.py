@@ -2,6 +2,8 @@ import os
 import platform
 import PySimpleGUI as sg
 import backend.command as cm
+import threading
+import time
 from backend.adapter import AdapterError
 from frontend.custom_config import CustomConfig
 from frontend.terminal import Terminal
@@ -250,6 +252,16 @@ class GUI:
         if answer == "Yes":
             self.set_gui_values_to_set_values()
 
+    def check_if_running_measurement(self):
+        while True:
+            if self.window[self.run_button].get_text() == "RUN":
+                return
+            curr_output = cm.GetOutput().do()
+            if curr_output is not None:
+                self.window.write_event_value(self.run_button, curr_output)
+                return
+            time.sleep(0.5)
+
     def event_check(self) -> bool:  # returns False if closed
         window, event, values = sg.read_all_windows()
         if window is None:
@@ -338,21 +350,30 @@ class GUI:
                 sg.popup_no_border("No channels were selected", background_color=self.color_red)
 
         elif event == self.run_button:
+            if event in values:
+                sg.popup_no_border(f"Stopping, got '{values[event]}' from osci", background_color=self.color_red, non_blocking=True)
+            button_text = self.window[self.run_button].get_text()
+            channels = self.get_set_value(self.channels)
+            temp_file = convert_path(os.path.join(os.getenv("OSCI_MEASUREMENTS_DIR"), "temp.txt"))
+            if button_text == "STOP":
+                self.window[self.run_button].Update("RUN")
+                self.window[self.run_button].Update(button_color="#B9BBBE")
+                is_preamble = self.get_set_value(self.preamble_check)
+                self.saving_text.update(visible=True, value="Saving...")
+                path = convert_path(values[self.curr_path])
+                self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted, self.saving_text)
+                return True
             mismatched = self.get_mismatched_inputboxes(values)
             if mismatched:
                 self.mismatched_popup(mismatched)
                 return True
-            channels = self.get_set_value(self.channels)
             if not channels:
                 sg.popup_no_border("No channels were selected", background_color=self.color_red)
                 return True
-            is_preamble = self.get_set_value(self.preamble_check)
-            temp_file = convert_path(os.path.join(os.getenv("OSCI_MEASUREMENTS_DIR"), "temp.txt"))
             self.invoker.start_run_cmds(temp_file, channels)
-            sg.popup_no_border("stop", title="Running", keep_on_top=True, background_color=self.color_red)
-            self.saving_text.update(visible=True, value="Saving...")
-            path = convert_path(values[self.curr_path])
-            self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted, self.saving_text)
+            self.window[self.run_button].Update("STOP")
+            self.window[self.run_button].Update(button_color="red")
+            threading.Thread(target=self.check_if_running_measurement).start()
 
         elif event == self.reset_osci_button:
             reset_message = "reset osci"

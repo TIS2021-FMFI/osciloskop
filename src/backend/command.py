@@ -34,7 +34,7 @@ class Command(ABC):
     @staticmethod
     def send_cmd(command):
         adapter.send(command)
-    
+
     @staticmethod
     def send_cmd_with_output(command, timeout=5):
         return adapter.send_and_get_output(command, timeout)
@@ -65,6 +65,14 @@ class EnterCmdModeCmd(Command):
 class LeaveCmdModeCmd(Command):
     def do(self):
         adapter.exit_cmd_mode()
+
+
+class GetOutput(Command):
+    def do(self):
+        try:
+            return adapter.get_output(0.2)
+        except AdapterError:
+            return None
 
 
 class CustomCmd(Command):
@@ -153,7 +161,6 @@ class CheckIfResponsiveCmd(Command):
         do method returns true if hpctrl responds to q *IDN?
         """
         return adapter.is_osci_responsive()
-
 
 class GetPreambleCmd(Command):
     def do(self):
