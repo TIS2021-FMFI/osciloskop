@@ -14,10 +14,14 @@ pyinstaller --noconfirm --onefile --noconsole --windowed --hidden-import "pysimp
 
 ## Screenshots
 Main window
+
 ![Main window](assets/screenshots/main.png)
 Terminal
+
 ![Terminal](assets/screenshots/terminal.png)
 Creating config
+
 ![Creating config](assets/screenshots/config_new.png)
 Loading config
+
 ![Loading config](assets/screenshots/config_load.png)
