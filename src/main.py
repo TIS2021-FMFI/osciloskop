@@ -4,7 +4,7 @@ import PySimpleGUI as sg
 from frontend.gui import GUI
 from dotenv import load_dotenv
 
-env_path = ".enva"
+env_path = ".env"
 
 def make_dirs():
     paths = [os.getenv("OSCI_MEASUREMENTS_DIR"),
