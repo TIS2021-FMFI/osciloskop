@@ -1,11 +1,11 @@
 # HP83480A oscilloscope GUI application
 
 ## Requirements
-Install Python modules: `pip install -r requirements.txt`
+1. Install Python modules: `pip install -r requirements.txt`
 
-[hpctrl](https://github.com/TIS2020-FMFI/hpctrl): put `connect.ini` in the [root folder](https://github.com/TIS2021-FMFI/osciloskop) and `hpctrl.exe`, `winvfx.16.dll`, `gpiblib.dll` in [tools/hpctrl](tools/hpctrl)
+2. [hpctrl](https://github.com/TIS2020-FMFI/hpctrl): put `connect.ini` in the [root folder](https://github.com/TIS2021-FMFI/osciloskop) and `hpctrl.exe`, `winvfx.16.dll`, `gpiblib.dll` in [tools/hpctrl](tools/hpctrl)
 
-Application won't launch without `.env` in the [root folder](https://github.com/TIS2021-FMFI/osciloskop).
+3. Application won't launch without `.env` in the [root folder](https://github.com/TIS2021-FMFI/osciloskop).
 
 ## Binary compilation
 `
