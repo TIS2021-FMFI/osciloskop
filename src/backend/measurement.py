@@ -95,7 +95,7 @@ class Measurements:
 
     def __init__(self, file_path, channels, reinterpret_trimmed_data, saving_gui_text: sg.Text):
         self.file_path = file_path
-        self.channels = self.sort_channels_numerically(channels)
+        self.channels = channels
         self.reinterpret_trimmed_data = reinterpret_trimmed_data
         self.saving_gui_text = saving_gui_text
     
@@ -124,9 +124,6 @@ class Measurements:
         first_space = line.index(" ")
         return (line[:first_space], line[first_space + 1 :])
 
-    def sort_channels_numerically(self, channels):
-        return sorted(list(channels))
-
 
 class SingleMeasurements(Measurements):
     def __init__(self, measurements, saving_gui_text: sg.Text):
@@ -137,12 +134,12 @@ class SingleMeasurements(Measurements):
 
 class MultipleMeasurementsNoPreambles(Measurements):
 
-    def __init__(self, file_path, preamble, channels, reinterpret_trimmed_data, saving_gui_text: sg.Text):
+    def __init__(self, file_path, preambles, channels, reinterpret_trimmed_data, saving_gui_text: sg.Text):
         """
         channels should be string, e.g. "23"
         """
         super().__init__(file_path, channels, reinterpret_trimmed_data, saving_gui_text)
-        self.preamble = preamble
+        self.preambles = preambles
         self.measurements = self.parse_file()
 
     def parse_file(self):
@@ -153,7 +150,7 @@ class MultipleMeasurementsNoPreambles(Measurements):
             for i, line in enumerate(f):
                 us, data = self.get_us_and_data(line)
                 measurement = Measurement(
-                    self.preamble,
+                    self.preambles[i % len(self.channels)],
                     data,
                     self.channels[i % len(self.channels)],
                     self.reinterpret_trimmed_data,

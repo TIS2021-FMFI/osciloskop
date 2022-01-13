@@ -224,6 +224,16 @@ class ChannelCmd(Command):
     def get_set_value(self):
         return self.send_cmd_with_output(f"q :channel{self.channel}:display?") == "1"
 
+class ChangeWaveformSourceCmd(Command):
+    def __init__(self, channel):
+        self.channel = channel
+
+    def do(self):
+        self.send_cmd(f"s :waveform:source channel{self.channel}")
+
+    def get_set_value(self):
+        return self.send_cmd_with_output("q :waveform:source?")
+
 
 class Invoker:
 
@@ -260,8 +270,12 @@ class Invoker:
                 )
             else:
                 time.sleep(0.5)
-                preamble = GetPreambleCmd().do().split("\n")[-1]
-                ms.MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data, saving_gui_text).save_to_disk(
+                preambles = []
+                for ch in chans:
+                    ChangeWaveformSourceCmd(ch).do()
+                    preamble = GetPreambleCmd().do().split("\n")[-1]
+                    preambles.append(preamble)
+                ms.MultipleMeasurementsNoPreambles(file_with_data, preambles, chans, reinterpret_trimmed_data, saving_gui_text).save_to_disk(
                     folder_to_store_measurements
                 )
             saving_gui_text.update(value="Removing temp.txt")
@@ -278,7 +292,7 @@ class Invoker:
         CustomCmd("s single").do()
         measurements = []
         for i in channels_to_string(channels):
-            CustomCmd(f"s :waveform:source channel{i}").do()
+            ChangeWaveformSourceCmd(i).do()
             CustomCmd("s :waveform:data?").do()
             data = CustomCmdWithOutput("16").do()
             # cut the count
@@ -304,7 +318,7 @@ class Invoker:
 
 
 def channels_to_string(channels):
-    return "".join(ch[2:] for ch in channels)
+    return "".join(sorted(ch[2:] for ch in channels))
 
 adapter = None
 def start_adapter():
