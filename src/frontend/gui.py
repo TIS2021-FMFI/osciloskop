@@ -66,12 +66,12 @@ class GUI:
             finalize=True
         )
         self.start_adapter()
-        if os.getenv("OSCI_IN_PRODUCTION") != "true":
-            sg.popup_no_border("Launched in testing mode", background_color=self.color_red, auto_close=True)
 
     def start_adapter(self):
         try:
             cm.start_adapter()
+            if os.getenv("OSCI_IN_PRODUCTION") != "true":
+                sg.popup_no_border("Launched in testing mode", background_color=self.color_red, auto_close=True)
         except AdapterError as e:
             sg.popup_no_border(e, background_color=self.color_red)
             self.window.close()
