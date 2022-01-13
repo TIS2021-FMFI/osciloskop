@@ -58,9 +58,12 @@ class GUI:
         self.custom_config = CustomConfig(self)
         self.terminal = Terminal(self)
         self.layout = self._create_layout()
+        window_title = "Oscilloscope control"
+        if os.getenv("OSCI_IN_PRODUCTION") != "true":
+            window_title += " - TESTING MODE (fake hpctrl)"
         self.window = sg.Window(
-            "Oscilloscope control",
-            self.layout,
+            title=window_title,
+            layout=self.layout,
             size=(self.WIDTH, self.HEIGHT),
             element_justification="c",
             finalize=True
@@ -70,8 +73,6 @@ class GUI:
     def start_adapter(self):
         try:
             cm.start_adapter()
-            if os.getenv("OSCI_IN_PRODUCTION") != "true":
-                sg.popup_no_border("Launched in testing mode", background_color=self.color_red, auto_close=True)
         except AdapterError as e:
             sg.popup_no_border(e, background_color=self.color_red)
             self.window.close()
