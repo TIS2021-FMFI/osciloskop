@@ -1,9 +1,10 @@
 import os
 import sys
+import PySimpleGUI as sg
 from frontend.gui import GUI
 from dotenv import load_dotenv
 
-env_path = ".env"
+env_path = ".enva"
 
 def make_dirs():
     paths = [os.getenv("OSCI_MEASUREMENTS_DIR"),
@@ -15,7 +16,9 @@ def make_dirs():
 
 if __name__ == "__main__":
     if not os.path.isfile(env_path):
-        sys.exit(f"the {env_path} file not found")
+        error_message = f"{env_path} file not found"
+        sg.PopupError(error_message)
+        sys.exit(error_message)
     load_dotenv(env_path)
     try:
         make_dirs()
