@@ -39,7 +39,7 @@ class Adapter:
             self.hpctrl_executable = self.hpctrl_executable.replace("hpctrl", "fake_hpctrl", 1)
 
         if not os.path.isfile(self.hpctrl_executable):
-            raise AdapterError("hpctrl executable not found")
+            raise AdapterError(f"HPCTRL not found in {self.hpctrl_executable}")
 
     def enqueue_output(self):
         """
