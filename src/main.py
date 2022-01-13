@@ -1,4 +1,5 @@
 import os
+import sys
 from frontend.gui import GUI
 from dotenv import load_dotenv
 
@@ -14,9 +15,10 @@ def make_dirs():
 
 if __name__ == "__main__":
     if not os.path.isfile(env_path):
-        print(f"the {env_path} file not found")
-        exit(1)
-    load_dotenv(env_path)    
+        error_message = f"the {env_path} file not found"
+        print(error_message)
+        sys.exit(error_message)
+    load_dotenv(env_path)
     try:
         make_dirs()
     except FileExistsError:
