@@ -18,7 +18,7 @@ class Adapter:
     out_thread: threading.Thread = None
     out_thread_killed: bool = False
     testing: bool = False
-    hpctrl_executable: str = "tools/hpctrl/hpctrl"
+    hpctrl_executable: str
     cmd_leave_cmd: str = "."
     cmd_enter_cmd: str = "cmd"
     cmd_disconnect: str = "DISCONNECT"
@@ -30,6 +30,7 @@ class Adapter:
     cmd_idn_response: str = "HEWLETT-PACKARD,83480A,US35240110,07.12"
 
     def __init__(self, testing):
+        self.hpctrl_executable = os.path.join(os.getenv("OSCI_HPCTRL_DIR"), "hpctrl")
         self.testing = testing
         if platform.system() == "Windows":
             self.hpctrl_executable += ".exe"

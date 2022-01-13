@@ -309,4 +309,5 @@ def channels_to_string(channels):
 adapter = None
 def start_adapter():
     global adapter
-    adapter = Adapter(testing=True)
+    in_production = os.getenv("OSCI_IN_PRODUCTION") == "true"
+    adapter = Adapter(testing=not in_production)

@@ -137,7 +137,7 @@ class GUI:
                 [sg.Text("Directory in which the measurements will be saved:")],
                 [
                     sg.InputText(
-                        key=self.curr_path, default_text="assets/measurements", enable_events=True, size=(34, 1)
+                        key=self.curr_path, default_text=os.getenv("OSCI_MEASUREMENTS_DIR"), enable_events=True, size=(34, 1)
                     ),
                     sg.FolderBrowse("Browse", initial_folder="assets", change_submits=True, enable_events=True)
                 ],
@@ -344,7 +344,7 @@ class GUI:
                 sg.popup_no_border("No channels were selected", background_color=self.color_red)
                 return True
             is_preamble = self.get_set_value(self.preamble_check)
-            temp_file = convert_path("assets/measurements/temp.txt")
+            temp_file = convert_path(os.path.join(os.getenv("OSCI_MEASUREMENTS_DIR"), "temp.txt"))
             self.invoker.start_run_cmds(temp_file, channels)
             sg.popup_no_border("stop", title="Running", keep_on_top=True, background_color=self.color_red)
             self.saving_text.update(visible=True, value="Saving...")
