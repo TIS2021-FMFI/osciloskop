@@ -127,6 +127,7 @@ loop:
 			if rand.Intn(3) == 0 {
 				time.Sleep(1 * time.Second)
 				fmt.Println("First big error\nSecond big error")
+				fmt.Println(msgFileWritten)
 			}
 		case cmdGetAverage:
 			if data.isAverage {
