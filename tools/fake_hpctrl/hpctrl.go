@@ -90,6 +90,24 @@ func main() {
 
 	rand.Seed(time.Now().UnixNano())
 
+	copyData := func() {
+		if data.measurementFilePath == "" {
+			log.Fatalln("measurementFile is empty")
+		}
+		var fileWithData string
+		if data.isPreamble {
+			fileWithData = fileWithPon
+		} else {
+			if data.isAverage {
+				fileWithData = fileWithPoff
+			} else {
+				fileWithData = fileWithPoff1000
+			}
+		}
+		copyFile(data.measurementFilePath, fileWithData)
+		fmt.Println(msgFileWritten)
+	}
+
 loop:
 	for {
 		input, err := reader.ReadBytes(endOfLineChar)
@@ -127,7 +145,7 @@ loop:
 			if rand.Intn(3) == 0 {
 				time.Sleep(1 * time.Second)
 				fmt.Println("First big error\nSecond big error")
-				fmt.Println(msgFileWritten)
+				copyData()
 			}
 		case cmdGetAverage:
 			if data.isAverage {
@@ -136,21 +154,7 @@ loop:
 				fmt.Println("0")
 			}
 		case cmdStopContinuousRead:
-			if data.measurementFilePath == "" {
-				log.Fatalln("measurementFile is empty")
-			}
-			var fileWithData string
-			if data.isPreamble {
-				fileWithData = fileWithPon
-			} else {
-				if data.isAverage {
-					fileWithData = fileWithPoff
-				} else {
-					fileWithData = fileWithPoff1000
-				}
-			}
-			copyFile(data.measurementFilePath, fileWithData)
-			fmt.Println(msgFileWritten)
+			copyData()
 		}
 
 		if strings.HasPrefix(trimmedInput, cmdFile) {
