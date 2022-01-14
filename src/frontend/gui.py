@@ -147,7 +147,7 @@ class GUI:
                     sg.FolderBrowse("Browse", initial_folder="assets", change_submits=True, enable_events=True)
                 ],
                 [
-                    sg.Button(self.run_button, size=button_size, disabled=True, pad=(1, 10)),
+                    sg.Button(self.run_button, size=button_size, disabled=True, pad=(1, 10), key=self.run_button),
                     sg.Button(self.single_button, size=button_size, disabled=True),
                     self.saving_text
                 ],
@@ -255,10 +255,12 @@ class GUI:
     def check_if_running_measurement(self):
         start = time.time()
         while True:
-            if self.window[self.run_button].get_text() == "RUN":
+            if self.window[self.run_button].get_text() == self.run_button:
                 return
             curr_output = cm.GetOutput().do()
             if curr_output is not None:
+                if "!file written" in curr_output:
+                    cm.adapter.out_queue.put("!file written")
                 self.window.write_event_value(self.run_button, curr_output)
                 return
             running_time = round(time.time() - start, 1)
@@ -360,7 +362,7 @@ class GUI:
             channels = self.get_set_value(self.channels)
             temp_file = convert_path(os.path.join(os.getenv("OSCI_MEASUREMENTS_DIR"), "temp.txt"))
             if button_text == "STOP":
-                self.window[self.run_button].Update("RUN")
+                self.window[self.run_button].Update(self.run_button)
                 self.window[self.run_button].Update(button_color="#B9BBBE")
                 self.saving_text.update(visible=True, value="Saving...")
                 is_preamble = self.get_set_value(self.preamble_check)
