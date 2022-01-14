@@ -251,26 +251,27 @@ class Invoker:
         CustomCmd(channels_to_string(channels)).do()
         StartDataAcquisitionCmd().do()
 
-    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble, reinterpret_trimmed_data, saving_gui_text: sg.Text):
-        StopDataAcquisitionCmd().do()
-
-        start = time.time()
-        timeout = 30 # in seconds
-        while True:
-            try:
-                hpctrl_output = adapter.get_output(0.2)
-                if "!file written" in hpctrl_output:
-                    break
-            except AdapterError:
-                pass
-            if time.time() > start + timeout:
-                raise CommandError("hpctrl didn't create the file with measurements")
-            time.sleep(0.5)
-
-        chans = channels_to_string(channels)
-
-
+    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble, reinterpret_trimmed_data, saving_gui_text: sg.Text, run_button: sg.Button, got_error):
+        if not got_error:
+            StopDataAcquisitionCmd().do()
         def run():
+            start = time.time()
+            timeout = 5 # in seconds
+            while True:
+                try:
+                    hpctrl_output = adapter.get_output(0.2)
+                    if "!file written" in hpctrl_output:
+                        break
+                except AdapterError:
+                    pass
+                if time.time() > start + timeout:
+                    saving_gui_text.update(visible=False)
+                    run_button.Update("RUN", button_color="#B9BBBE", disabled=False)
+                    print("hpctrl didn't create the file with measurements")
+                    return
+                time.sleep(0.5)
+
+            chans = channels_to_string(channels)
             if is_preamble:
                 ms.MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data, saving_gui_text).save_to_disk(
                     folder_to_store_measurements
@@ -288,11 +289,11 @@ class Invoker:
             saving_gui_text.update(value="Removing temp.txt")
             os.remove(file_with_data)
             saving_gui_text.update(visible=False)
+            run_button.Update(disabled=False)
 
         thread = threading.Thread(target=run, args=())
         thread.daemon = True
         thread.start()
-        # run() # single-threaded, comment 3 lines above
 
 
     def single_cmds(self, channels, path, reinterpret_trimmed_data, saving_gui_text):

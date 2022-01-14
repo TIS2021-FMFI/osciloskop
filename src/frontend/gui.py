@@ -353,7 +353,8 @@ class GUI:
                 sg.popup_no_border("No channels were selected", background_color=self.color_red)
 
         elif event == self.run_button:
-            if event in values:
+            got_error = event in values
+            if got_error:
                 sg.popup_no_border(f"Stopping, got '{values[event]}' from osci", background_color=self.color_red, non_blocking=True)
             button_text = self.window[self.run_button].get_text()
             channels = self.get_set_value(self.channels)
@@ -361,10 +362,11 @@ class GUI:
             if button_text == "STOP":
                 self.window[self.run_button].Update("RUN")
                 self.window[self.run_button].Update(button_color="#B9BBBE")
-                is_preamble = self.get_set_value(self.preamble_check)
                 self.saving_text.update(visible=True, value="Saving...")
+                is_preamble = self.get_set_value(self.preamble_check)
                 path = convert_path(values[self.curr_path])
-                self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted, self.saving_text)
+                self.window[self.run_button].Update(disabled=True)
+                self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted, self.saving_text, self.window[self.run_button], got_error)
                 return True
             mismatched = self.get_mismatched_inputboxes(values)
             if mismatched:
@@ -377,7 +379,9 @@ class GUI:
             self.window[self.run_button].Update("STOP")
             self.window[self.run_button].Update(button_color="red")
             self.saving_text.update(visible=True, value="Running...")
-            threading.Thread(target=self.check_if_running_measurement).start()
+            thread = threading.Thread(target=self.check_if_running_measurement, args=())
+            thread.daemon = True
+            thread.start()
 
         elif event == self.reset_osci_button:
             reset_message = "reset osci"
