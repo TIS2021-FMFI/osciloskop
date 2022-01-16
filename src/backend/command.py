@@ -1,7 +1,9 @@
 import threading
 import time
-from backend.adapter import Adapter
-from backend.measurement import *
+import os
+import backend.measurement as ms
+import PySimpleGUI as sg
+from backend.adapter import Adapter, AdapterError
 from abc import ABC, abstractmethod
 
 
@@ -11,23 +13,28 @@ class CommandError(Exception):
 class Command(ABC):
 
     @staticmethod
+    @classmethod
+    def check():
+        pass
+
+    @staticmethod
     @abstractmethod
     def do():
         pass
+
+    def check_and_do(self):
+        self.check()
+        self.do()
 
     @staticmethod
     @classmethod
     def get_set_value():
         pass
 
-    def check_and_do(self):
-        self.check()
-        self.do()
-       
     @staticmethod
     def send_cmd(command):
         adapter.send(command)
-    
+
     @staticmethod
     def send_cmd_with_output(command, timeout=5):
         return adapter.send_and_get_output(command, timeout)
@@ -58,6 +65,14 @@ class EnterCmdModeCmd(Command):
 class LeaveCmdModeCmd(Command):
     def do(self):
         adapter.exit_cmd_mode()
+
+
+class GetOutput(Command):
+    def do(self):
+        try:
+            return adapter.get_output(0.2)
+        except AdapterError:
+            return None
 
 
 class CustomCmd(Command):
@@ -147,7 +162,6 @@ class CheckIfResponsiveCmd(Command):
         """
         return adapter.is_osci_responsive()
 
-
 class GetPreambleCmd(Command):
     def do(self):
         """
@@ -191,7 +205,7 @@ class StopDataAcquisitionCmd(Command):
         self.send_cmd("?")
 
 
-class TurnOnChannel(Command):
+class TurnOnChannelCmd(Command):
     def __init__(self, channel):
         self.channel = channel
 
@@ -199,12 +213,33 @@ class TurnOnChannel(Command):
         self.send_cmd(f"s :channel{self.channel}:display on")
 
 
-class TurnOffChannel(Command):
+class TurnOffChannelCmd(Command):
     def __init__(self, channel):
         self.channel = channel
 
     def do(self):
         self.send_cmd(f"s :channel{self.channel}:display off")
+
+
+class ChannelCmd(Command):
+    def __init__(self, channel):
+        self.channel = channel
+
+    def do(self):
+        pass
+
+    def get_set_value(self):
+        return self.send_cmd_with_output(f"q :channel{self.channel}:display?") == "1"
+
+class ChangeWaveformSourceCmd(Command):
+    def __init__(self, channel):
+        self.channel = channel
+
+    def do(self):
+        self.send_cmd(f"s :waveform:source channel{self.channel}")
+
+    def get_set_value(self):
+        return self.send_cmd_with_output("q :waveform:source?")
 
 
 class Invoker:
@@ -216,47 +251,65 @@ class Invoker:
         CustomCmd(channels_to_string(channels)).do()
         StartDataAcquisitionCmd().do()
 
-    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble, reinterpret_trimmed_data):
-        StopDataAcquisitionCmd().do()
-
-        start = time.time()
-        timeout = 5 # in seconds
-        while not os.path.isfile(file_with_data):
-            if time.time() > start + timeout:
-                raise CommandError("hpctrl didn't create a file with measurements")
-            time.sleep(0.1)
-
-        chans = channels_to_string(channels)
-
+    def stop_run_cmds(self, file_with_data, folder_to_store_measurements, channels, is_preamble, reinterpret_trimmed_data, saving_gui_text: sg.Text, run_button: sg.Button, got_error):
+        if not got_error:
+            StopDataAcquisitionCmd().do()
         def run():
+            start = time.time()
+            timeout = 5 # in seconds
+            while True:
+                try:
+                    hpctrl_output = adapter.get_output(0.2)
+                    if "!file written" in hpctrl_output:
+                        break
+                except AdapterError:
+                    pass
+                if time.time() > start + timeout:
+                    saving_gui_text.update(visible=False)
+                    run_button.Update("RUN", button_color="#B9BBBE", disabled=False)
+                    print("hpctrl didn't create the file with measurements")
+                    return
+                time.sleep(0.5)
+
+            chans = channels_to_string(channels)
             if is_preamble:
-                MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data).save_to_disk(
+                ms.MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data, saving_gui_text).save_to_disk(
                     folder_to_store_measurements
                 )
             else:
-                preamble = GetPreambleCmd().do()
-                MultipleMeasurementsNoPreambles(file_with_data, preamble, chans, reinterpret_trimmed_data).save_to_disk(
+                time.sleep(0.5)
+                preambles = []
+                for ch in chans:
+                    ChangeWaveformSourceCmd(ch).do()
+                    preamble = GetPreambleCmd().do().split("\n")[-1]
+                    preambles.append(preamble)
+                ms.MultipleMeasurementsNoPreambles(file_with_data, preambles, chans, reinterpret_trimmed_data, saving_gui_text).save_to_disk(
                     folder_to_store_measurements
                 )
+            saving_gui_text.update(value="Removing temp.txt")
             os.remove(file_with_data)
+            saving_gui_text.update(visible=False)
+            run_button.Update(disabled=False)
 
         thread = threading.Thread(target=run, args=())
         thread.daemon = True
         thread.start()
 
-    def single_cmds(self, channels, path, reinterpret_trimmed_data):
+
+    def single_cmds(self, channels, path, reinterpret_trimmed_data, saving_gui_text):
         CustomCmd("s single").do()
         measurements = []
         for i in channels_to_string(channels):
-            CustomCmd(f"s :waveform:source channel{i}").do()
+            ChangeWaveformSourceCmd(i).do()
             CustomCmd("s :waveform:data?").do()
             data = CustomCmdWithOutput("16").do()
             # cut the count
             data = data[(data.find("\n")+1):]
             preamble = GetPreambleCmd().do()
-            measurements.append(Measurement(preamble, data, i, reinterpret_trimmed_data))
-        SingleMeasurements(measurements).save_to_disk(path)
+            measurements.append(ms.Measurement(preamble, data, i, reinterpret_trimmed_data))
+        ms.SingleMeasurements(measurements, saving_gui_text).save_to_disk(path)
         TurnOnRunModeCmd().do()
+        saving_gui_text.update(visible=False)
 
     def initialize_cmds(self, address):
         adapter.start_hpctrl()
@@ -264,8 +317,6 @@ class Invoker:
         EnterCmdModeCmd().do()
         SetFormatToWordCmd().do()
         TurnOnRunModeCmd().do()
-        for ch in range(1, 4+1):
-            TurnOffChannel(ch).do()
         PreambleOffCmd().do()
 
     def disengage_cmd(self):
@@ -275,7 +326,10 @@ class Invoker:
 
 
 def channels_to_string(channels):
-    return "".join(ch[2:] for ch in channels)
+    return "".join(sorted(ch[2:] for ch in channels))
 
-
-adapter = Adapter(testing=True)
+adapter = None
+def start_adapter():
+    global adapter
+    in_production = os.getenv("OSCI_IN_PRODUCTION") == "true"
+    adapter = Adapter(testing=not in_production)

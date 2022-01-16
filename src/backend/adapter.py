@@ -18,7 +18,7 @@ class Adapter:
     out_thread: threading.Thread = None
     out_thread_killed: bool = False
     testing: bool = False
-    hpctrl_executable: str = "tools/hpctrl/hpctrl"
+    hpctrl_executable: str
     cmd_leave_cmd: str = "."
     cmd_enter_cmd: str = "cmd"
     cmd_disconnect: str = "DISCONNECT"
@@ -30,6 +30,7 @@ class Adapter:
     cmd_idn_response: str = "HEWLETT-PACKARD,83480A,US35240110,07.12"
 
     def __init__(self, testing):
+        self.hpctrl_executable = os.path.join(os.getenv("OSCI_HPCTRL_DIR"), "hpctrl")
         self.testing = testing
         if platform.system() == "Windows":
             self.hpctrl_executable += ".exe"
@@ -38,7 +39,7 @@ class Adapter:
             self.hpctrl_executable = self.hpctrl_executable.replace("hpctrl", "fake_hpctrl", 1)
 
         if not os.path.isfile(self.hpctrl_executable):
-            raise AdapterError("hpctrl executable not found")
+            raise AdapterError(f"HPCTRL not found in {self.hpctrl_executable}")
 
     def enqueue_output(self):
         """
@@ -57,11 +58,10 @@ class Adapter:
     def get_output(self, timeout):
         """
         returns output from hpctrl as str. Timeout arg is in seconds.
-        It also calls self.clear_input_queue() before it finishes
         """
         out_str = ""
         get_started = time.time()
-        
+        time.sleep(0.1)
         while True:
             if self.out_queue.empty():
                 number_of_attempts = 10
@@ -74,8 +74,6 @@ class Adapter:
                 raise AdapterError(f"timeout error: the operation took longer than {timeout} seconds")
             if not self.out_queue.empty():
                 out_str += self.out_queue.get_nowait()
-
-        self.clear_input_queue()
         
         res = out_str.strip()
         if not res:
@@ -146,13 +144,15 @@ class Adapter:
         """
         return self.send_and_get_output([self.cmd_idn], 0.2) == self.cmd_idn_response
 
-    def send(self, messages, clean_output_after=True):
+    def send(self, messages):
         """
-        prints messages into self.process.stdin
+        clears input queue an then prints messages into self.process.stdin
         """
+        self.clear_input_queue()
+
         if not self.is_hpctrl_running():
             raise AdapterError("hpctrl is not running")
-        if isinstance(messages, list):  
+        if isinstance(messages, list):
             messages = "\n".join(messages)
         try:
             print(messages, file=self.process.stdin)
@@ -163,14 +163,11 @@ class Adapter:
             if messages != self.cmd_exit:
                 raise AdapterError("could not send the command")
         
-        if clean_output_after:
-            self.clear_input_queue()
-
     def send_and_get_output(self, messages, timeout):
         """
         calls self.send(messages) and then self.get_output(timeout, lines)
         """
-        self.send(messages, False)
+        self.send(messages)
         return self.get_output(timeout)
 
     def connect(self, address):

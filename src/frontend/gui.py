@@ -1,11 +1,12 @@
-from os import listdir, path as ospath, sep
+import os
 import platform
 import PySimpleGUI as sg
+import backend.command as cm
+import threading
+import time
 from backend.adapter import AdapterError
-from backend.command import *
 from frontend.custom_config import CustomConfig
 from frontend.terminal import Terminal
-
 class GUI:
 
     class IsInCustomConfig():
@@ -46,6 +47,7 @@ class GUI:
     curr_path = "curr path"
     config_file_combo = "cfg file"
     is_data_reinterpreted = True
+    checking_error_while_measuring_thread = None
     
     # other stuff
     color_red = "maroon"
@@ -54,18 +56,29 @@ class GUI:
     def __init__(self):
         sg.theme("DarkGrey9")
         sg.set_options(icon="assets/icon/icon.ico")
-        self.invoker = Invoker()
+        self.invoker = cm.Invoker()
+        self._currently_set_values = {self.channels: []}
         self.custom_config = CustomConfig(self)
         self.terminal = Terminal(self)
-        self._currently_set_values = {self.channels: []}
         self.layout = self._create_layout()
+        window_title = "Oscilloscope control"
+        if os.getenv("OSCI_IN_PRODUCTION") != "true":
+            window_title += " - TESTING MODE (fake hpctrl)"
         self.window = sg.Window(
-            "Oscilloscope control",
-            self.layout,
+            title=window_title,
+            layout=self.layout,
             size=(self.WIDTH, self.HEIGHT),
             element_justification="c",
             finalize=True
         )
+        self.start_adapter()
+
+    def start_adapter(self):
+        try:
+            cm.start_adapter()
+        except AdapterError as e:
+            sg.popup_no_border(e, background_color=self.color_red)
+            self.window.close()
 
     def _create_layout(self):
         button_size = (10, 1)
@@ -124,18 +137,20 @@ class GUI:
             size=(left_column_width, 280),
         )
 
+        self.saving_text = sg.Text("Saving...", visible=False, justification="c")
         col_run = sg.Col(
             [
                 [sg.Text("Directory in which the measurements will be saved:")],
                 [
                     sg.InputText(
-                        key=self.curr_path, default_text="assets/measurements", enable_events=True, size=(34, 1)
+                        key=self.curr_path, default_text=os.getenv("OSCI_MEASUREMENTS_DIR"), enable_events=True, size=(34, 1)
                     ),
                     sg.FolderBrowse("Browse", initial_folder="assets", change_submits=True, enable_events=True)
                 ],
                 [
-                    sg.Button(self.run_button, size=button_size, disabled=True, pad=(1, 10)),
+                    sg.Button(self.run_button, size=button_size, disabled=True, pad=(1, 10), key=self.run_button),
                     sg.Button(self.single_button, size=button_size, disabled=True),
+                    self.saving_text
                 ],
                 [
                     sg.Checkbox(
@@ -151,7 +166,7 @@ class GUI:
             element_justification="c"
         )
 
-        config_files = [f for f in listdir(ospath.join("assets", "config"))]
+        config_files = list(os.listdir(os.path.join("assets", "config")))
         col_cfg = sg.Col(
             [
                 [
@@ -197,11 +212,19 @@ class GUI:
                 self.window[key].update(value)
 
     def initialize_set_values(self):
-        self.add_set_value_key(self.average_pts_input, AverageNoCmd().get_set_value())
-        self.add_set_value_key(self.curr_points_input, PointsCmd().get_set_value())
-        self.add_set_value_key(self.averaging_check, AverageCmd().get_set_value())
+        self._currently_set_values = {self.channels: []}
+        self.add_set_value_key(self.average_pts_input, cm.AverageNoCmd().get_set_value())
+        self.add_set_value_key(self.curr_points_input, cm.PointsCmd().get_set_value())
+        self.add_set_value_key(self.averaging_check, cm.AverageCmd().get_set_value())
         self.add_set_value_key(self.preamble_check, False)
         self.add_set_value_key(self.trimmed_check, True)
+
+        self._currently_set_values[self.channels] = []
+        for channel in self.channels_checkboxes:
+            enabled = cm.ChannelCmd(self.channel_number(channel)).get_set_value()
+            if enabled:
+                self._currently_set_values[self.channels].append(channel)
+            self.window[channel].update(enabled)
 
         self.set_gui_values_to_set_values()
         self.update_info()
@@ -217,22 +240,49 @@ class GUI:
     def button_activation(self, disable):
         for button in self.single_button, self.run_button:
             self.window[button].update(disabled=disable)
-        
+
     def get_mismatched_inputboxes(self, values):
         return "".join(
             f"{key} - {value} vs {values[key]} in GUI\n"
             for key, value in self._currently_set_values.items()
             if key in values and values[key] != value
         )
-        
+
     def mismatched_popup(self, mismatched):
         answer = sg.popup_yes_no(f"Values are not set:\n{mismatched}\nSet GUI values to currently set values?")
         if answer == "Yes":
             self.set_gui_values_to_set_values()
 
+    def check_if_running_measurement(self):
+        while True:
+            if self.window[self.run_button].get_text() == self.run_button:
+                return
+            curr_output = cm.GetOutput().do()
+            if curr_output is not None:
+                if "!file written" in curr_output:
+                    cm.adapter.out_queue.put("!file written")
+                self.window.write_event_value(self.run_button, curr_output)
+                return
+            time.sleep(0.5)
+
+    def timer(self, start):
+        self.saving_text.update(visible=True)
+        while self.window[self.run_button].get_text() == "STOP":
+            curr_time = round(time.time() - start, 1)
+            self.saving_text.update(value=f"Running {curr_time}s")
+            time.sleep(0.1)
+
     def event_check(self) -> bool:  # returns False if closed
-        event, values = self.window.read()
-        if event == self.connect_button:
+        window, event, values = sg.read_all_windows()
+        if window is None:
+            return False
+        if window == self.terminal.window:
+            self.terminal.check_event(event, values)
+        
+        elif window == self.custom_config.window:
+            self.custom_config.check_event(event, values)
+
+        elif event == self.connect_button:
             self.invoker.initialize_cmds(values[self.address])
             self.add_set_value_key(self.address, values[self.address])
             self.button_activation(False)
@@ -244,47 +294,45 @@ class GUI:
             self.add_set_value_key(self.address, 0)
 
         elif event == self.new_config_button:
-            config_content, config_name = self.custom_config.open_creation()
-            self.custom_config.create_file(config_content, config_name)
+            self.custom_config.open_creation_window()
             
         elif event == self.edit_config_button:
             file_name = values[self.config_file_combo]
-            full_path = ospath.join("assets", "config", file_name)
-            if not ospath.isfile(full_path):
+            full_path = os.path.join("assets", "config", file_name)
+            if not os.path.isfile(full_path):
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
-            config_content, config_name = self.custom_config.open_creation(file=full_path)
-            self.custom_config.create_file(config_content, config_name)
+            self.custom_config.open_creation_window(file=full_path)
 
         elif event == self.load_config_button:
             file_name = values[self.config_file_combo]
-            full_path = ospath.join("assets", "config", file_name)
-            if not ospath.isfile(full_path):
+            full_path = os.path.join("assets", "config", file_name)
+            if not os.path.isfile(full_path):
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
             if file_name:
-                self.custom_config.open_window(full_path)
+                self.custom_config.open_config_window(full_path)
             else:
                 sg.popup_no_border("File not chosen", background_color=self.color_red)
 
         elif event == self.set_points_button:
-            PointsCmd(values[self.curr_points_input]).check_and_do()
+            cm.PointsCmd(values[self.curr_points_input]).check_and_do()
             self.add_set_value_key(self.curr_points_input, values[self.curr_points_input])
 
         elif event == self.set_average_pts_button:
-            AverageNoCmd(values[self.average_pts_input]).check_and_do()
+            cm.AverageNoCmd(values[self.average_pts_input]).check_and_do()
             self.add_set_value_key(self.average_pts_input, values[self.average_pts_input])
 
         elif event in self.channels_checkboxes:
             if values[event]:
-                TurnOnChannel(event[2:]).do()
+                cm.TurnOnChannelCmd(self.channel_number(event)).do()
                 self._currently_set_values[self.channels].append(event)
             else:
-                TurnOffChannel(event[2:]).do()
+                cm.TurnOffChannelCmd(self.channel_number(event)).do()
                 self._currently_set_values[self.channels].remove(event)
 
         elif event == self.averaging_check:
-            AverageCmd().do(values[self.averaging_check])
+            cm.AverageCmd().do(values[self.averaging_check])
             self.add_set_value_key(self.averaging_check, values[self.averaging_check])
 
         elif event == self.trimmed_check:
@@ -293,9 +341,9 @@ class GUI:
 
         elif event == self.preamble_check:
             if values[self.preamble_check]:
-                PreampleOnCmd().do()
+                cm.PreampleOnCmd().do()
             else:
-                PreambleOffCmd().do()
+                cm.PreambleOffCmd().do()
             self.add_set_value_key(self.preamble_check, values[self.preamble_check])
 
         elif event == self.single_button:
@@ -304,37 +352,56 @@ class GUI:
                 self.mismatched_popup(mismatched)
                 return True
             channels = self.get_set_value(self.channels)
-            path = self.convert_path(values[self.curr_path])
+            path = convert_path(values[self.curr_path])
+            self.saving_text.update(visible=True, value="Saving...")
             if channels:
-                self.invoker.single_cmds(channels, path, self.is_data_reinterpreted)
+                self.invoker.single_cmds(channels, path, self.is_data_reinterpreted, self.saving_text)
             else:
                 sg.popup_no_border("No channels were selected", background_color=self.color_red)
 
         elif event == self.run_button:
+            got_error = event in values
+            button_text = self.window[self.run_button].get_text()
+            channels = self.get_set_value(self.channels)
+            temp_file = convert_path(os.path.join(os.getenv("OSCI_MEASUREMENTS_DIR"), "temp.txt"))
+            if button_text == "STOP":
+                self.window[self.run_button].Update(self.run_button)
+                if self.checking_error_while_measuring_thread != None:
+                    self.checking_error_while_measuring_thread.join()
+                self.window[self.run_button].Update(button_color="#B9BBBE")
+                self.saving_text.update(visible=True, value="Saving...")
+                is_preamble = self.get_set_value(self.preamble_check)
+                path = convert_path(values[self.curr_path])
+                self.window[self.run_button].Update(disabled=True)
+                self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted, self.saving_text, self.window[self.run_button], got_error)
+                if got_error:
+                    sg.popup_no_border("Measurement stopped. Probably ran out of memory. Data will be saved anyway.",
+                background_color=self.color_red)
+                return True
             mismatched = self.get_mismatched_inputboxes(values)
             if mismatched:
                 self.mismatched_popup(mismatched)
                 return True
-            channels = self.get_set_value(self.channels)
             if not channels:
                 sg.popup_no_border("No channels were selected", background_color=self.color_red)
                 return True
-            is_preamble = self.get_set_value(self.preamble_check)
-            temp_file = self.convert_path("assets/measurements/temp.txt")
             self.invoker.start_run_cmds(temp_file, channels)
-            sg.popup_no_border("stop", title="Running", keep_on_top=True, background_color=self.color_red)
-            path = self.convert_path(values[self.curr_path])
-            self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted)
+            self.window[self.run_button].Update("STOP")
+            self.window[self.run_button].Update(button_color="red")
+            timer_thread = threading.Thread(target=self.timer, args=(time.time(),))
+            timer_thread.start()
+            self.checking_error_while_measuring_thread = threading.Thread(target=self.check_if_running_measurement, args=())
+            self.checking_error_while_measuring_thread.start()
 
         elif event == self.reset_osci_button:
             reset_message = "reset osci"
             if sg.popup_get_text(f"Type '{reset_message}' to factory reset", keep_on_top=True) == reset_message:
-                FactoryResetCmd().do()
+                cm.FactoryResetCmd().do()
                 return True
             sg.popup_no_border(f"Didn't reset, input wasn't '{reset_message}'", background_color=self.color_red)
 
         elif event == self.ping_osci_button:
-            if CheckIfResponsiveCmd().do():
+            if cm.CheckIfResponsiveCmd().do():
                 sg.popup_no_border("ping successful", background_color=self.color_green)
             else:
                 sg.popup_no_border("couldn't ping", background_color=self.color_red)
@@ -356,13 +423,16 @@ class GUI:
                 if not self.event_check():
                     break
                 self.update_info()
-            except (CommandError, AdapterError) as e:
-                sg.popup_no_border(e, background_color=self.color_red)
-            except Exception as e:
-                print(e)
+            except (cm.CommandError, AdapterError) as error:
+                sg.popup_no_border(error, background_color=self.color_red)
 
-        self.invoker.disengage_cmd()
+        if cm.adapter is not None:
+            self.invoker.disengage_cmd()
         self.window.close()
 
-    def convert_path(self, path):
-        return path.replace("/", sep)
+    def channel_number(self, channel_string):
+        return channel_string[2:]
+
+
+def convert_path(path):
+    return path.replace("/", os.sep)
