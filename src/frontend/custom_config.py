@@ -157,9 +157,9 @@ Use '#' in a command for a variable input.
             pass
 
         if config_content:
-            with open(os.path.join("assets", "config", file_name), "w") as f:
+            with open(os.path.join(os.getenv("OSCI_CONFIG_DIR"), file_name), "w") as f:
                 f.write(config_content)
-            self.gui.window[self.gui.config_file_combo].update(values=list(os.listdir(os.path.join("assets", "config"))))
+            self.gui.window[self.gui.config_file_combo].update(values=list(os.listdir(os.getenv("OSCI_CONFIG_DIR"))))
             
     def close_window(self):
         self.window.close()

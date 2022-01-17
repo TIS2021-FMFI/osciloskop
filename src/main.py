@@ -1,15 +1,15 @@
 import os
 import sys
 import PySimpleGUI as sg
-from frontend.gui import GUI
 from dotenv import load_dotenv
 
 ENV_PATH = ".env"
 
+
 def make_dirs():
     paths = [os.getenv("OSCI_MEASUREMENTS_DIR"),
-        os.getenv("OSCI_CONFIG_DIR"),
-        os.getenv("OSCI_HPCTRL_DIR")]
+             os.getenv("OSCI_CONFIG_DIR"),
+             os.getenv("OSCI_HPCTRL_DIR")]
     for path in paths:
         os.makedirs(path)
 
@@ -24,5 +24,6 @@ if __name__ == "__main__":
         make_dirs()
     except FileExistsError:
         pass
+    from frontend.gui import GUI
     gui = GUI()
     gui.main_loop()
