@@ -29,7 +29,7 @@ class GUI:
     channels = "channels"   # key for a list of currently checked channels
     preamble_check = "preamble"
     trimmed_check = "reinterpret trimmed data"
-    address = "connect"
+    address = "address"
 
     # other elements (buttons, labels, ..)
     connect_button = "Connect"
@@ -323,8 +323,8 @@ class GUI:
 
         elif event == self.connect_button:
             self.invoker.initialize_cmds(values[self.address])
-            self.add_set_value_key(self.address, values[self.address])
             self.initialize_set_values()
+            self.add_set_value_key(self.address, values[self.address])
             self.button_activation(False)
             self.window[self.connect_button].update(disabled=True)
 
@@ -438,13 +438,13 @@ class GUI:
     def main_loop(self):
         while True:
             try:
-                if not self.event_check():
+                if self.event_check() == False:
                     break
                 self.update_info()
             except (cm.CommandError, AdapterError) as error:
                 sg.popup_no_border(error, background_color=self.color_red)
 
-        if cm.adapter is not None:
+        if cm.adapter is not None and self.address in self._currently_set_values:
             self.invoker.disengage_cmd()
         self.window.close()
 
