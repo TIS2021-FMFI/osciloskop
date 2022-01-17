@@ -242,7 +242,9 @@ class GUI:
         for button in (self.single_button, self.run_button,
                        self.disconnect_button, self.ping_osci_button,
                        self.reset_osci_button, self.set_points_button,
-                       self.set_average_pts_button, self.terminal_button):
+                       self.set_average_pts_button, self.terminal_button,
+                       self.load_config_button, self.averaging_check,
+                       *self.channels_checkboxes, self.preamble_check):
             self.window[button].update(disabled=disable)
 
     def get_mismatched_inputboxes(self, values):
