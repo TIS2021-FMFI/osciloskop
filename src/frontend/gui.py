@@ -267,6 +267,7 @@ class GUI:
             if self.window[self.run_button].get_text() == self.run_button:
                 return
             curr_output = cm.GetOutput().do(timeout=output_timeout)
+            print("Output:", curr_output)
             if curr_output is not None:
                 print(">>GOT OUTPUT:", curr_output)
                 if "!file written" in curr_output:
