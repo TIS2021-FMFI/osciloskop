@@ -72,6 +72,7 @@ class GUI:
             finalize=True
         )
         self.start_adapter()
+        self.button_activation(True)
 
     def start_adapter(self):
         try:
@@ -148,8 +149,8 @@ class GUI:
                     sg.FolderBrowse("Browse", initial_folder="assets", change_submits=True, enable_events=True)
                 ],
                 [
-                    sg.Button(self.run_button, size=button_size, disabled=True, pad=(1, 10), key=self.run_button),
-                    sg.Button(self.single_button, size=button_size, disabled=True),
+                    sg.Button(self.run_button, size=button_size, pad=(1, 10), key=self.run_button),
+                    sg.Button(self.single_button, size=button_size),
                     self.saving_text
                 ],
                 [
@@ -166,7 +167,7 @@ class GUI:
             element_justification="c"
         )
 
-        config_files = list(os.listdir(os.path.join("assets", "config")))
+        config_files = list(os.listdir(os.getenv("OSCI_CONFIG_DIR")))
         col_cfg = sg.Col(
             [
                 [
@@ -238,7 +239,10 @@ class GUI:
         self.window["info"].update("\n".join(info_content))
 
     def button_activation(self, disable):
-        for button in self.single_button, self.run_button:
+        for button in (self.single_button, self.run_button,
+                       self.disconnect_button, self.ping_osci_button,
+                       self.reset_osci_button, self.set_points_button,
+                       self.set_average_pts_button, self.terminal_button):
             self.window[button].update(disabled=disable)
 
     def get_mismatched_inputboxes(self, values):
@@ -285,20 +289,23 @@ class GUI:
         elif event == self.connect_button:
             self.invoker.initialize_cmds(values[self.address])
             self.add_set_value_key(self.address, values[self.address])
-            self.button_activation(False)
             self.initialize_set_values()
+            self.button_activation(False)
+            self.window[self.connect_button].update(disabled=True)
 
         elif event == self.disconnect_button:
             self.invoker.disengage_cmd()
             self.button_activation(True)
             self.add_set_value_key(self.address, 0)
+            self.window[self.connect_button].update(disabled=False)
+            self._currently_set_values = {self.channels: []}
 
         elif event == self.new_config_button:
             self.custom_config.open_creation_window()
             
         elif event == self.edit_config_button:
             file_name = values[self.config_file_combo]
-            full_path = os.path.join("assets", "config", file_name)
+            full_path = os.path.join(os.getenv("OSCI_CONFIG_DIR"), file_name)
             if not os.path.isfile(full_path):
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
@@ -306,7 +313,7 @@ class GUI:
 
         elif event == self.load_config_button:
             file_name = values[self.config_file_combo]
-            full_path = os.path.join("assets", "config", file_name)
+            full_path = os.path.join(os.getenv("OSCI_CONFIG_DIR"), file_name)
             if not os.path.isfile(full_path):
                 sg.popup_no_border("File does not exist", background_color=self.color_red)
                 return True
