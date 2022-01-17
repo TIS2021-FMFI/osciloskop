@@ -279,6 +279,38 @@ class GUI:
             self.saving_text.update(value=f"Running {curr_time}s")
             time.sleep(0.1)
 
+    def start_measurement(self, mismatched):
+        if mismatched:
+            self.mismatched_popup(mismatched)
+            return True
+        channels = self.get_set_value(self.channels)
+        if not channels:
+            sg.popup_no_border("No channels were selected", background_color=self.color_red)
+            return True
+        temp_file = convert_path(os.path.join(os.getenv("OSCI_MEASUREMENTS_DIR"), "temp.txt"))    
+        self.invoker.start_run_cmds(temp_file, channels)
+        self.window[self.run_button].Update("STOP")
+        self.window[self.run_button].Update(button_color="red")
+        timer_thread = threading.Thread(target=self.timer, args=(time.time(),))
+        timer_thread.start()
+        self.checking_error_while_measuring_thread = threading.Thread(target=self.check_if_running_measurement, args=())
+        self.checking_error_while_measuring_thread.start()
+        
+    def stop_measurement(self, path, got_error):
+        self.window[self.run_button].Update(self.run_button)
+        if self.checking_error_while_measuring_thread != None:
+            self.checking_error_while_measuring_thread.join()
+        self.window[self.run_button].Update(button_color="#B9BBBE")
+        self.saving_text.update(visible=True, value="Saving...")
+        is_preamble = self.get_set_value(self.preamble_check)
+        self.window[self.run_button].Update(disabled=True)
+        temp_file = convert_path(os.path.join(os.getenv("OSCI_MEASUREMENTS_DIR"), "temp.txt"))
+        channels = self.get_set_value(self.channels)
+        self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted, self.saving_text, self.window[self.run_button], got_error)
+        if got_error:
+            sg.popup_no_border("Measurement stopped. Probably ran out of memory. Data will be saved anyway.",
+        background_color=self.color_red)
+
     def event_check(self) -> bool:  # returns False if closed
         window, event, values = sg.read_all_windows()
         if window is None:
@@ -370,38 +402,14 @@ class GUI:
                 sg.popup_no_border("No channels were selected", background_color=self.color_red)
 
         elif event == self.run_button:
-            got_error = event in values
             button_text = self.window[self.run_button].get_text()
-            channels = self.get_set_value(self.channels)
-            temp_file = convert_path(os.path.join(os.getenv("OSCI_MEASUREMENTS_DIR"), "temp.txt"))
-            if button_text == "STOP":
-                self.window[self.run_button].Update(self.run_button)
-                if self.checking_error_while_measuring_thread != None:
-                    self.checking_error_while_measuring_thread.join()
-                self.window[self.run_button].Update(button_color="#B9BBBE")
-                self.saving_text.update(visible=True, value="Saving...")
-                is_preamble = self.get_set_value(self.preamble_check)
-                path = convert_path(values[self.curr_path])
-                self.window[self.run_button].Update(disabled=True)
-                self.invoker.stop_run_cmds(temp_file, path, channels, is_preamble, self.is_data_reinterpreted, self.saving_text, self.window[self.run_button], got_error)
-                if got_error:
-                    sg.popup_no_border("Measurement stopped. Probably ran out of memory. Data will be saved anyway.",
-                background_color=self.color_red)
-                return True
-            mismatched = self.get_mismatched_inputboxes(values)
-            if mismatched:
-                self.mismatched_popup(mismatched)
-                return True
-            if not channels:
-                sg.popup_no_border("No channels were selected", background_color=self.color_red)
-                return True
-            self.invoker.start_run_cmds(temp_file, channels)
-            self.window[self.run_button].Update("STOP")
-            self.window[self.run_button].Update(button_color="red")
-            timer_thread = threading.Thread(target=self.timer, args=(time.time(),))
-            timer_thread.start()
-            self.checking_error_while_measuring_thread = threading.Thread(target=self.check_if_running_measurement, args=())
-            self.checking_error_while_measuring_thread.start()
+            if button_text == "STOP":   # stop measurement
+                self.button_activation(disable=False)
+                self.stop_measurement(convert_path(values[self.curr_path]), got_error=event in values)
+            elif button_text == "RUN":   # start measurement
+                self.start_measurement(mismatched=self.get_mismatched_inputboxes(values))
+                self.button_activation(disable=True)
+                self.window[self.run_button].update(disabled=False)
 
         elif event == self.reset_osci_button:
             reset_message = "reset osci"
