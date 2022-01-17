@@ -267,11 +267,8 @@ class GUI:
             if self.window[self.run_button].get_text() == self.run_button:
                 return
             curr_output = cm.GetOutput().do(timeout=output_timeout)
-            print("Output:", curr_output)
             if curr_output is not None:
-                print(">>GOT OUTPUT:", curr_output)
                 if "!file written" in curr_output:
-                    print("!file written was in the output, putting back into out_queue")
                     cm.adapter.out_queue.put("!file written")
                 self.window.write_event_value(self.run_button, curr_output)
                 return
