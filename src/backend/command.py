@@ -254,9 +254,11 @@ def stop_run_cmds(file_with_data, folder_to_store_measurements, channels, is_pre
         StopDataAcquisitionCmd().do()
 
     def run():
+        print("Starting stop_cmds")
         start = time.time()
         timeout = 5  # in seconds
         while True:
+            print("waiting for !file written")
             try:
                 hpctrl_output = adapter.get_output(0.2)
                 if "!file written" in hpctrl_output:
@@ -269,7 +271,7 @@ def stop_run_cmds(file_with_data, folder_to_store_measurements, channels, is_pre
                 print("hpctrl didn't create the file with measurements")
                 return
             time.sleep(0.5)
-
+        print("!file written found, proceeding to writing measurements")
         chans = channels_to_string(channels)
         if is_preamble:
             ms.MultipleMeasurementsWithPreambles(file_with_data, chans, reinterpret_trimmed_data,
