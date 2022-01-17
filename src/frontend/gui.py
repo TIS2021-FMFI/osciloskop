@@ -71,8 +71,8 @@ class GUI:
             element_justification="c",
             finalize=True
         )
-        self.start_adapter()
         self.button_activation(True)
+        self.start_adapter()
 
     def start_adapter(self):
         try:
