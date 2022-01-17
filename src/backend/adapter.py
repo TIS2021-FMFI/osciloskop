@@ -9,6 +9,7 @@ import os
 class AdapterError(Exception):
     pass
 
+
 class Adapter:
     address: int
     out_queue: queue.Queue = None
@@ -74,7 +75,7 @@ class Adapter:
                 raise AdapterError(f"timeout error: the operation took longer than {timeout} seconds")
             if not self.out_queue.empty():
                 out_str += self.out_queue.get_nowait()
-        
+
         res = out_str.strip()
         if not res:
             raise AdapterError("got empty string as response from hpctrl")
@@ -162,7 +163,7 @@ class Adapter:
         except OSError:
             if messages != self.cmd_exit:
                 raise AdapterError("could not send the command")
-        
+
     def send_and_get_output(self, messages, timeout):
         """
         calls self.send(messages) and then self.get_output(timeout, lines)
