@@ -260,16 +260,17 @@ class GUI:
             self.set_gui_values_to_set_values()
 
     def check_if_running_measurement(self):
+        output_timeout = 0.5
         while True:
             if self.window[self.run_button].get_text() == self.run_button:
                 return
-            curr_output = cm.GetOutput().do()
+            curr_output = cm.GetOutput().do(timeout=output_timeout)
             if curr_output is not None:
                 if "!file written" in curr_output:
                     cm.adapter.out_queue.put("!file written")
                 self.window.write_event_value(self.run_button, curr_output)
                 return
-            time.sleep(0.5)
+            time.sleep(output_timeout + 0.1)
 
     def timer(self, start):
         self.saving_text.update(visible=True)

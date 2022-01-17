@@ -68,9 +68,9 @@ class LeaveCmdModeCmd(Command):
 
 
 class GetOutput(Command):
-    def do(self):
+    def do(self, timeout=0.2):
         try:
-            return adapter.get_output(0.2)
+            return adapter.get_output(timeout)
         except AdapterError:
             return None
 
