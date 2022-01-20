@@ -22,3 +22,6 @@ pkg
 
 # Ignore config files
 assets/config
+
+# Ignore batch files
+*.bat
