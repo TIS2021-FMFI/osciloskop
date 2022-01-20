@@ -46,6 +46,7 @@ class ConnectCmd(Command):
             raise CommandError("couldn't connect, probably bad address")
 
         adapter.connect(self.address)
+        time.sleep(0.5)
 
         try:
             if not CheckIfResponsiveCmd().do():
