@@ -41,18 +41,7 @@ class ConnectCmd(Command):
         self.address = address
 
     def do(self):
-        def exit():
-            ExitHpctrlCmd().do()
-            raise CommandError("couldn't connect, probably bad address")
-
         adapter.connect(self.address)
-        time.sleep(0.5)
-
-        try:
-            if not CheckIfResponsiveCmd().do():
-                exit()
-        except AdapterError:
-            exit()
 
     def check(self):
         if self.address not in [str(i) for i in range(1, 32)]:
@@ -326,6 +315,16 @@ def initialize_cmds(address):
     adapter.start_hpctrl()
     ConnectCmd(address).check_and_do()
     EnterCmdModeCmd().do()
+
+    def exit():
+            ExitHpctrlCmd().do()
+            raise CommandError("couldn't connect, probably bad address")
+    try:
+        if not CheckIfResponsiveCmd().do():
+            exit()
+    except AdapterError:
+        exit()
+        
     SetFormatToWordCmd().do()
     TurnOnRunModeCmd().do()
     PreambleOffCmd().do()
