@@ -315,6 +315,16 @@ def initialize_cmds(address):
     adapter.start_hpctrl()
     ConnectCmd(address).check_and_do()
     EnterCmdModeCmd().do()
+
+    def exit():
+            ExitHpctrlCmd().do()
+            raise CommandError("couldn't connect, probably bad address")
+    try:
+        if not CheckIfResponsiveCmd().do():
+            exit()
+    except AdapterError:
+        exit()
+        
     SetFormatToWordCmd().do()
     TurnOnRunModeCmd().do()
     PreambleOffCmd().do()

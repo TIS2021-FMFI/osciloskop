@@ -115,6 +115,7 @@ class Adapter:
         """
         sends exit command to hpctrl or kills it if it's frozen
         """
+        self.in_cmd_mode = False
         if self.process is not None:
             self.send([self.cmd_exit])
             # maybe we'll have to sleep here for a few ms
