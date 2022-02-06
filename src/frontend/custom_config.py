@@ -4,7 +4,6 @@ import backend.command as cm
 
 
 class CustomConfig:
-    # cache[file_name] = []Cmd()
     cache = {}
     input_char = "#"
 
@@ -13,7 +12,7 @@ class CustomConfig:
         self.window = None
         self.window_name = None
 
-    class Cmd:
+    class CustomConfigCmd:
         def __init__(self, line, input_char):
             self.key = "s " + line
             self.edit_key = self.key + "_edit"
@@ -104,7 +103,7 @@ Use '#' in a command for a variable input.
             with open(file_name) as f:
                 lines = [" ".join(line.split()) for line in f.readlines()]
             for line in lines:
-                cmd = self.Cmd(line, self.input_char)
+                cmd = self.CustomConfigCmd(line, self.input_char)
                 cmds.append(cmd)
                 rows.append(parse_line(cmd.key, cmd.edit_key))
             self.cache[os.path.basename(file_name)] = cmds
