@@ -11,7 +11,7 @@ from typing import List
 
 
 class GUI:
-    class IsInCustomConfig:
+    class ValueFromCustomConfig:
         def __init__(self, value):
             self.value = value
 
@@ -202,8 +202,8 @@ class GUI:
             value = value.lower()
         if isinstance(key, str):
             key = key.lower()
-        elif isinstance(key, self.custom_config.Cmd):
-            key, value = self.IsInCustomConfig(key.key), str(key)
+        elif isinstance(key, self.custom_config.CustomConfigCmd):
+            key, value = self.ValueFromCustomConfig(key.key), str(key)
         self._currently_set_values[key] = value
 
     def get_set_value(self, key):
@@ -234,7 +234,7 @@ class GUI:
 
     def update_info(self):
         info_content = [
-            value if isinstance(key, self.IsInCustomConfig) else f"{key} = {value}"
+            value if isinstance(key, self.ValueFromCustomConfig) else f"{key} = {value}"
             for key, value in self._currently_set_values.items()
             if value
         ]
